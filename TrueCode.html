@@ -18,10 +18,313 @@
       padding: 0
     }
 
+    /* ── Theme variables ────────────────────────────────────── */
+    :root {
+      --bg: #f5f6f8;
+      --bg-card: #fff;
+      --bg-card-hover: #f9fafb;
+      --bg-input: #fafafa;
+      --bg-input-focus: #fff;
+      --text: #1a1a2e;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+      --border: #e2e6ec;
+      --border-light: #f0f2f5;
+      --border-input: #d1d5db;
+      --shadow: rgba(0,0,0,.04);
+      --shadow-hover: rgba(0,0,0,.08);
+      --hero-bg: #0a0a12;
+      --hero-text: #ffffff;
+      --hero-sub: rgba(255,255,255,0.45);
+    }
+    [data-theme="dark"] {
+      --bg: #0f1117;
+      --bg-card: #1a1d27;
+      --bg-card-hover: #22252f;
+      --bg-input: #1a1d27;
+      --bg-input-focus: #22252f;
+      --text: #e2e8f0;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --text-faint: #64748b;
+      --border: #2d3344;
+      --border-light: #252836;
+      --border-input: #3d4455;
+      --shadow: rgba(0,0,0,.2);
+      --shadow-hover: rgba(0,0,0,.4);
+      --hero-bg: #06060a;
+      --hero-text: #ffffff;
+      --hero-sub: rgba(255,255,255,0.45);
+    }
+
+    /* ── Dark-mode overrides for inline styles ──────────── */
+
+    /* White / near-white backgrounds → dark card */
+    [data-theme="dark"] [style*="background:#fff"],
+    [data-theme="dark"] [style*="background: #fff"],
+    [data-theme="dark"] [style*="background:#ffffff"],
+    [data-theme="dark"] [style*="background:#f9fafb"],
+    [data-theme="dark"] [style*="background:#fafafa"],
+    [data-theme="dark"] [style*="background:#f8f9fa"],
+    [data-theme="dark"] [style*="background:#f8fafc"] {
+      background: #1a1d27 !important;
+    }
+
+    /* Light gray backgrounds → slightly lighter dark */
+    [data-theme="dark"] [style*="background:#f3f4f6"],
+    [data-theme="dark"] [style*="background:#e5e7eb"] {
+      background: #22252f !important;
+    }
+
+    /* Tinted light backgrounds (green, blue, teal, yellow, pink, indigo) */
+    [data-theme="dark"] [style*="background:#f0fdfa"],
+    [data-theme="dark"] [style*="background:#f0fdf4"],
+    [data-theme="dark"] [style*="background:#dcfce7"] {
+      background: rgba(13, 148, 136, .08) !important;
+    }
+    [data-theme="dark"] [style*="background:#f0f7ff"],
+    [data-theme="dark"] [style*="background:#e8f0fe"],
+    [data-theme="dark"] [style*="background:#eef2ff"],
+    [data-theme="dark"] [style*="background:#e0e7ff"] {
+      background: rgba(59, 130, 246, .08) !important;
+    }
+    [data-theme="dark"] [style*="background:#fef3c7"] {
+      background: rgba(245, 158, 11, .12) !important;
+    }
+    [data-theme="dark"] [style*="background:#fce7f3"] {
+      background: rgba(236, 72, 153, .1) !important;
+    }
+    [data-theme="dark"] [style*="background:#fef2f2"],
+    [data-theme="dark"] [style*="background:#fff8f5"] {
+      background: rgba(239, 68, 68, .1) !important;
+    }
+
+    /* Dark text colors → light equivalents */
+    [data-theme="dark"] [style*="color:#374151"],
+    [data-theme="dark"] [style*="color:#1a1a2e"],
+    [data-theme="dark"] [style*="color:#1a1a1a"],
+    [data-theme="dark"] [style*="color:#111"] {
+      color: #e2e8f0 !important;
+    }
+    [data-theme="dark"] [style*="color:#6b7280"],
+    [data-theme="dark"] [style*="color:#585b70"] {
+      color: #94a3b8 !important;
+    }
+    [data-theme="dark"] [style*="color:#9ca3af"] {
+      color: #64748b !important;
+    }
+    [data-theme="dark"] [style*="color:#64748b"] {
+      color: #8896ab !important;
+    }
+
+    /* Status text colors - slightly brighter in dark mode */
+    [data-theme="dark"] [style*="color:#166534"],
+    [data-theme="dark"] [style*="color:#15803d"] {
+      color: #4ade80 !important;
+    }
+    [data-theme="dark"] [style*="color:#b91c1c"] {
+      color: #f87171 !important;
+    }
+    [data-theme="dark"] [style*="color:#92400e"] {
+      color: #fbbf24 !important;
+    }
+    [data-theme="dark"] [style*="color:#9d174d"] {
+      color: #f472b6 !important;
+    }
+    [data-theme="dark"] [style*="color:#3730a3"],
+    [data-theme="dark"] [style*="color:#4338ca"] {
+      color: #818cf8 !important;
+    }
+    [data-theme="dark"] [style*="color:#1d4ed8"],
+    [data-theme="dark"] [style*="color:#1a73e8"] {
+      color: #60a5fa !important;
+    }
+    [data-theme="dark"] [style*="color:#d97706"] {
+      color: #fbbf24 !important;
+    }
+
+    /* Light gray borders → dark borders */
+    [data-theme="dark"] [style*="border:1px solid #e5e7eb"],
+    [data-theme="dark"] [style*="border:1px solid #e2e8f0"],
+    [data-theme="dark"] [style*="border:1px solid #d1d5db"] {
+      border-color: #2d3344 !important;
+    }
+    [data-theme="dark"] [style*="border:2px solid #e5e7eb"] {
+      border-color: #2d3344 !important;
+    }
+    [data-theme="dark"] [style*="border-bottom:1px solid #e5e7eb"] {
+      border-bottom-color: #2d3344 !important;
+    }
+    [data-theme="dark"] [style*="border-top:1px solid #e5e7eb"] {
+      border-top-color: #2d3344 !important;
+    }
+
+    /* Tinted borders → muted dark versions */
+    [data-theme="dark"] [style*="border:1px solid #bbf7d0"],
+    [data-theme="dark"] [style*="border:1px solid #86efac"] {
+      border-color: rgba(74, 222, 128, .25) !important;
+    }
+    [data-theme="dark"] [style*="border:1px solid #bfdbfe"],
+    [data-theme="dark"] [style*="border:1px solid #c7d2fe"] {
+      border-color: rgba(96, 165, 250, .25) !important;
+    }
+    [data-theme="dark"] [style*="border:1px solid #fca5a5"],
+    [data-theme="dark"] [style*="border:1px solid #fecaca"] {
+      border-color: rgba(248, 113, 113, .3) !important;
+    }
+    [data-theme="dark"] [style*="border:1px solid #fde8d8"] {
+      border-color: rgba(251, 191, 36, .2) !important;
+    }
+    [data-theme="dark"] [style*="border:1px dashed #99f6e4"] {
+      border-color: rgba(45, 212, 191, .3) !important;
+    }
+    [data-theme="dark"] [style*="border:1px dashed #9ca3af"] {
+      border-color: #3d4455 !important;
+    }
+    [data-theme="dark"] [style*="border-bottom-color:#86efac"] {
+      border-bottom-color: rgba(74, 222, 128, .25) !important;
+    }
+    [data-theme="dark"] [style*="border-top:1px solid #fde68a"] {
+      border-top-color: rgba(253, 230, 138, .2) !important;
+    }
+
+    /* kbd elements (keyboard shortcuts) */
+    [data-theme="dark"] kbd {
+      background: #2d3344 !important;
+      border-color: #3d4455 !important;
+      color: #cbd5e1 !important;
+    }
+
+    /* Login overlay and modals - keep working in dark mode */
+    [data-theme="dark"] [style*="background:rgba(0, 0, 0, .35)"],
+    [data-theme="dark"] [style*="background:rgba(0,0,0,0.6)"],
+    [data-theme="dark"] [style*="background:rgba(0, 0, 0, .4)"] {
+      background: rgba(0, 0, 0, .65) !important;
+    }
+
+    /* Scrollbars in dark mode */
+    [data-theme="dark"] ::-webkit-scrollbar {
+      width: 8px;
+    }
+    [data-theme="dark"] ::-webkit-scrollbar-track {
+      background: #0f1117;
+    }
+    [data-theme="dark"] ::-webkit-scrollbar-thumb {
+      background: #2d3344;
+      border-radius: 4px;
+    }
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+      background: #3d4455;
+    }
+
+    /* Login card dark mode */
+    [data-theme="dark"] .login-card {
+      background: #1a1d27;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+    }
+    [data-theme="dark"] .login-heading {
+      color: #e2e8f0;
+    }
+    [data-theme="dark"] .login-sub {
+      color: #94a3b8;
+    }
+    [data-theme="dark"] .login-error {
+      background: rgba(239, 68, 68, .1);
+      border-color: rgba(248, 113, 113, .3);
+      color: #f87171;
+    }
+    [data-theme="dark"] .login-form .form-label {
+      color: #cbd5e1;
+    }
+    [data-theme="dark"] .login-switch {
+      color: #94a3b8;
+    }
+
+    /* Demo banner dark mode */
+    [data-theme="dark"] [style*="background:#1e293b"] {
+      background: #1a1d27 !important;
+      border-color: #2d3344 !important;
+    }
+
+    /* Side panel / modal overlays */
+    [data-theme="dark"] [style*="background:#fff"][style*="box-shadow"] {
+      background: #1a1d27 !important;
+    }
+
+    /* Select/option elements */
+    [data-theme="dark"] select,
+    [data-theme="dark"] option {
+      background: #1a1d27;
+      color: #e2e8f0;
+    }
+
+    /* Table-like structures */
+    [data-theme="dark"] table,
+    [data-theme="dark"] th,
+    [data-theme="dark"] td {
+      border-color: #2d3344;
+    }
+    [data-theme="dark"] th {
+      background: #22252f;
+      color: #cbd5e1;
+    }
+    [data-theme="dark"] td {
+      color: #e2e8f0;
+    }
+
+    /* Textarea and pre/code blocks */
+    [data-theme="dark"] textarea {
+      background: #1a1d27;
+      color: #e2e8f0;
+      border-color: #3d4455;
+    }
+    [data-theme="dark"] pre {
+      background: #0f1117 !important;
+    }
+
+    /* Setup overlay dark mode */
+    [data-theme="dark"] .setup-overlay {
+      background: linear-gradient(135deg, #0f1117 0%, #131620 50%, #111827 100%);
+    }
+    [data-theme="dark"] .setup-card {
+      background: #1a1d27;
+      box-shadow: 0 8px 48px rgba(0, 0, 0, .4);
+    }
+    [data-theme="dark"] .setup-heading {
+      color: #e2e8f0;
+    }
+    [data-theme="dark"] .setup-sub {
+      color: #94a3b8;
+    }
+    [data-theme="dark"] .setup-choice-btn {
+      background: #22252f;
+      border-color: #2d3344;
+    }
+    [data-theme="dark"] .setup-choice-btn:hover {
+      border-color: #0d9488;
+      background: rgba(13, 148, 136, .08);
+    }
+    [data-theme="dark"] .choice-title {
+      color: #e2e8f0;
+    }
+    [data-theme="dark"] .choice-desc {
+      color: #94a3b8;
+    }
+
+    /* OTP verification card (reuses setup-card) */
+    [data-theme="dark"] .setup-card input[type="text"],
+    [data-theme="dark"] .setup-card input[type="email"],
+    [data-theme="dark"] .setup-card input[type="password"] {
+      background: #22252f;
+      color: #e2e8f0;
+      border-color: #3d4455;
+    }
+
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: #f5f6f8;
-      color: #1a1a2e;
+      background: var(--bg);
+      color: var(--text);
       font-size: 15px;
       line-height: 1.6
     }
@@ -111,14 +414,14 @@
 
     .muted {
       font-size: 12px;
-      color: #9ca3af
+      color: var(--text-faint)
     }
 
     .back-link {
       display: inline-block;
       margin-bottom: 16px;
       font-size: 12px;
-      color: #6b7280;
+      color: var(--text-muted);
       cursor: pointer
     }
 
@@ -193,18 +496,18 @@
 
     /* Cards */
     .card {
-      background: #fff;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 18px 20px;
       margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+      box-shadow: 0 1px 3px var(--shadow);
       transition: transform .2s ease, box-shadow .2s ease
     }
 
     .card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, .08)
+      box-shadow: 0 4px 16px var(--shadow-hover)
     }
 
     .card-top {
@@ -217,7 +520,7 @@
 
     .reason {
       font-size: 13px;
-      color: #374151;
+      color: var(--text-secondary);
       line-height: 1.6;
       margin-bottom: 12px
     }
@@ -265,13 +568,13 @@
     }
 
     .btn-outline {
-      background: #fff;
-      color: #374151;
-      border: 1px solid #d1d5db
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-input)
     }
 
     .btn-outline:hover {
-      background: #f9fafb
+      background: var(--bg-card-hover)
     }
 
     .btn-drive {
@@ -317,8 +620,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #fff;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 14px 18px;
       margin-bottom: 8px;
@@ -334,8 +637,8 @@
 
     /* Submission accordion */
     .sub-card {
-      background: #fff;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 12px;
       margin-bottom: 10px;
       overflow: hidden;
@@ -358,12 +661,12 @@
     }
 
     .sub-header:hover {
-      background: #f8fafb
+      background: var(--bg-card-hover)
     }
 
     .sub-body {
       padding: 4px 18px 18px;
-      border-top: 1px solid #f0f2f5;
+      border-top: 1px solid var(--border-light);
       animation: fadeIn .25s ease
     }
 
@@ -426,8 +729,8 @@
 
     /* Assessment box */
     .assessment {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
       margin-bottom: 12px;
@@ -443,7 +746,7 @@
 
     .assessment-label {
       font-size: 11px;
-      color: #9ca3af;
+      color: var(--text-faint);
       width: 130px;
       flex-shrink: 0
     }
@@ -456,8 +759,8 @@
     }
 
     .concept-chip {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-card-hover);
+      color: var(--text-secondary);
       border-radius: 99px;
       padding: 2px 8px;
       font-size: 11px
@@ -487,8 +790,8 @@
 
     /* Student profile */
     .meta-block {
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 18px 22px;
       margin-bottom: 24px;
@@ -501,7 +804,7 @@
     .effort-label {
       font-size: 11px;
       font-weight: 600;
-      color: #9ca3af;
+      color: var(--text-faint);
       text-transform: uppercase;
       letter-spacing: .05em;
       margin-bottom: 6px
@@ -552,7 +855,7 @@
 
     .stat-label {
       font-size: 11px;
-      color: #9ca3af;
+      color: var(--text-faint);
       text-align: center
     }
 
@@ -585,18 +888,19 @@
     .form-label {
       font-size: 12px;
       font-weight: 500;
-      color: #374151
+      color: var(--text-secondary)
     }
 
     .form-input,
     .form-textarea,
     .form-select {
       padding: 8px 11px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--border-input);
       border-radius: 6px;
       font-size: 13px;
       font-family: inherit;
-      background: #fafafa;
+      background: var(--bg-input);
+      color: var(--text);
       outline: none;
       transition: border-color .15s
     }
@@ -605,12 +909,12 @@
     .form-textarea:focus,
     .form-select:focus {
       border-color: #0d9488;
-      background: #fff;
+      background: var(--bg-input-focus);
       box-shadow: 0 0 0 3px rgba(13, 148, 136, .1)
     }
 
     .student-entry {
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px 14px;
       margin-bottom: 10px
@@ -626,7 +930,7 @@
     .add-student {
       font-size: 12px;
       color: #0d9488;
-      background: #fff;
+      background: var(--bg-card);
       border: 1px dashed #99f6e4;
       border-radius: 8px;
       padding: 7px 14px;
@@ -685,7 +989,7 @@
     .side-panel {
       width: 490px;
       max-width: 100vw;
-      background: #fff;
+      background: var(--bg-card);
       height: 100%;
       padding: 28px 24px;
       display: flex;
@@ -1509,18 +1813,18 @@
     }
 
     .home-stat-card {
-      background: #fff;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 22px 20px;
       text-align: center;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+      box-shadow: 0 1px 3px var(--shadow);
       transition: transform .2s ease, box-shadow .2s ease
     }
 
     .home-stat-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, .08)
+      box-shadow: 0 4px 16px var(--shadow-hover)
     }
 
     .home-stat-num {
@@ -1531,18 +1835,18 @@
 
     .home-stat-label {
       font-size: 12px;
-      color: #6b7280;
+      color: var(--text-muted);
       margin-top: 4px;
       font-weight: 500
     }
 
     .home-section {
-      background: #fff;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 22px 24px;
       margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .04)
+      box-shadow: 0 1px 3px var(--shadow)
     }
 
     .home-section h2 {
@@ -1559,7 +1863,7 @@
       align-items: center;
       gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid var(--border-light);
       font-size: 13px
     }
 
@@ -1577,8 +1881,8 @@
       flex: 1;
       min-width: 160px;
       padding: 16px 20px;
-      background: #f8fafc;
-      border: 1px solid #e2e6ec;
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border);
       border-radius: 12px;
       cursor: pointer;
       transition: all .2s ease;
@@ -1601,7 +1905,7 @@
     .home-quick-btn .label {
       font-size: 13px;
       font-weight: 600;
-      color: #374151
+      color: var(--text-secondary)
     }
 
     /* ── Apple-style hero greeting ─────────────────────────── */
@@ -1616,7 +1920,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      background: #0a0a12;
+      background: var(--hero-bg);
       z-index: 900;
     }
     .hero-canvas {
@@ -1631,7 +1935,7 @@
       font-size: clamp(48px, 8vw, 80px);
       font-weight: 700;
       letter-spacing: -0.03em;
-      color: #ffffff;
+      color: var(--hero-text);
       text-align: center;
       opacity: 0;
       transform: translateY(30px) scale(0.97);
@@ -1642,7 +1946,7 @@
     .hero-date {
       font-size: 17px;
       font-weight: 400;
-      color: rgba(255,255,255,0.45);
+      color: var(--hero-sub);
       margin-top: 12px;
       letter-spacing: 0.01em;
       opacity: 0;
@@ -1788,13 +2092,41 @@
       <a class="nav-link" onclick="showPage('pending')">&#8987; Pending</a>
       <div style="flex:1"></div>
       <a class="nav-link" id="nav-reset-demo" style="display:none;font-size:11px;color:#585b70;margin-top:4px" onclick="resetToDemo()">Reset demo</a>
-      <a class="nav-link" onclick="showPage('account')" style="font-size:12px;color:#94a3b8;margin-top:4px">&#9881; Account</a>
+      <a class="nav-link" onclick="toggleTheme()" style="font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer" id="theme-toggle">&#9790; Dark</a>
+      <a class="nav-link" onclick="showPage('account')" style="font-size:12px;color:#94a3b8;margin-top:2px">&#9881; Account</a>
       <a class="nav-link" onclick="handleSignOut()" style="font-size:12px;color:#f87171;margin-top:2px">&#10140; Sign Out</a>
     </nav>
     <main class="main" id="main"></main>
   </div>
 
   <script>
+    // ══════════════════════════════════════════════════════════
+    //  THEME
+    // ══════════════════════════════════════════════════════════
+    function initTheme() {
+      const saved = localStorage.getItem('tc_theme');
+      if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      updateThemeBtn();
+    }
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('tc_theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('tc_theme', 'dark');
+      }
+      updateThemeBtn();
+    }
+    function updateThemeBtn() {
+      const btn = document.getElementById('theme-toggle');
+      if (!btn) return;
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      btn.innerHTML = isDark ? '&#9788; Light' : '&#9790; Dark';
+    }
+    initTheme();
+
     // ══════════════════════════════════════════════════════════
     //  CONCEPT DETECTION
     // ══════════════════════════════════════════════════════════
@@ -4143,6 +4475,7 @@ ${contentText.slice(0, 6000)}` }],
     //  RENDERING
     // ══════════════════════════════════════════════════════════
     function render() {
+      updateThemeBtn();
       const main = document.getElementById('main');
       // Clean up hero overlay if present
       const _hs = document.querySelector('.hero-section');
