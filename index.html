@@ -7674,29 +7674,22 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       // For real sessions, do NOT sync on boot
       if (setupDone && isDemoMode && classCode) fbClearAllUnfinished(classCode);
 
-      // If NOT in demo mode but MOCK still has demo defaults (no saved data found),
-      // wipe them so teachers don't see phantom demo assignments/submissions
+      // If NOT in demo mode, strip any demo data that leaked into MOCK
       if (setupDone && !isDemoMode) {
-        const demoNames = DEMO_DEFAULTS.students.map(s => s.name);
-        const hasDemoStudents = MOCK.students.some(s => demoNames.includes(s.name));
-        // If the only students are demo students, or assignments match demo defaults, clear them
-        if (hasDemoStudents && MOCK.students.every(s => demoNames.includes(s.name))) {
-          // All students are demo — strip demo assignments and submissions but keep the teacher's students
-          MOCK.assignments = [];
-          MOCK.submissions = [];
-          MOCK.curricula = [];
+        const demoAssignTitles = new Set(DEMO_DEFAULTS.assignments.map(a => a.title));
+        const demoSubCodes = new Set(DEMO_DEFAULTS.submissions.map(s => s.code));
+        const hasDemoAssigns = MOCK.assignments.some(a => demoAssignTitles.has(a.title));
+        const hasDemoSubs = MOCK.submissions.some(s => demoSubCodes.has(s.code));
+        if (hasDemoAssigns || hasDemoSubs) {
+          // Remove demo assignments and all demo submissions
+          MOCK.assignments = MOCK.assignments.filter(a => !demoAssignTitles.has(a.title));
+          MOCK.submissions = MOCK.submissions.filter(s => !demoSubCodes.has(s.code));
+          MOCK.curricula = MOCK.curricula.filter(c => {
+            const demoCurNames = new Set((DEMO_DEFAULTS.curricula || []).map(dc => dc.name));
+            return !demoCurNames.has(c.name);
+          });
           dismissedSigs = new Set();
           activeFlags = [];
-          saveState();
-        } else if (MOCK.assignments.length > 0) {
-          // Teacher has real students but demo assignments/submissions leaked in — filter them out
-          const realStudentIds = new Set(MOCK.students.map(s => s.id));
-          const demoAssignIds = new Set(DEMO_DEFAULTS.assignments.map(a => a.id));
-          // Remove submissions that belong to demo students
-          MOCK.submissions = MOCK.submissions.filter(sub => realStudentIds.has(sub.student_id));
-          // Remove assignments that have zero submissions (demo leftovers)
-          const assignsWithSubs = new Set(MOCK.submissions.map(s => s.assignment_id));
-          MOCK.assignments = MOCK.assignments.filter(a => assignsWithSubs.has(a.id));
           saveState();
         }
       }
