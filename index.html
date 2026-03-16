@@ -4821,7 +4821,7 @@ ${contentText.slice(0, 6000)}`
           <canvas class="hero-canvas" id="hero-particles"></canvas>
           <div class="hero-greeting">Hello, ${esc(firstName)}.</div>
           <div class="hero-date">${dateStr}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.25);margin-top:12px;letter-spacing:.1em">v2</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.25);margin-top:12px;letter-spacing:.1em">v3</div>
           <div class="hero-scroll-hint">
             <span>Scroll</span>
             <div class="hero-scroll-arrow"></div>
@@ -5060,14 +5060,19 @@ ${contentText.slice(0, 6000)}`
 
     // ── Assignments page ──────────────────────────────────────
     function renderAssignments() {
-      return `<h1>Assignments</h1>${MOCK.assignments.map(a => `
+      return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <h1 style="margin-bottom:0">Assignments</h1>
+    <button class="btn btn-primary" onclick="showPage('upload')">+ Upload Assignment</button>
+  </div>
+  ${MOCK.assignments.length ? MOCK.assignments.map(a => `
   <div class="list-link" onclick="showAssignment(${a.id})">
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-weight:500">${esc(a.title)}</span>
       <span class="badge badge-type">${TYPE_LABELS[a.assignment_type]}</span>
     </div>
     <span class="muted">${a.created_at}</span>
-  </div>`).join('')}`;
+  </div>`).join('') : `<div class="empty-state"><span class="empty-state-icon">&#128203;</span><p class="empty-state-text">No assignments yet</p><p class="empty-state-sub">Upload your first assignment to get started.</p><button class="btn btn-primary" style="margin-top:12px" onclick="showPage('upload')">+ Upload Assignment</button></div>`}`;
     }
 
     function renderAssignmentDetail(id) {
