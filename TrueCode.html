@@ -7047,23 +7047,33 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     function setupAddName() { setupNames.push(''); renderSetupOverlay(); }
     function setupRemoveName(i) { setupNames.splice(i, 1); renderSetupOverlay(); }
 
-    function finishSetup() {
+    async function finishSetup() {
       const names = setupNames.map(n => n.trim()).filter(Boolean);
       if (!names.length) { alert('Please add at least one student name.'); return; }
-      // Replace demo data with the teacher's real class
+      // Nuke ALL old data — demo or otherwise
       MOCK.students = names.map((name, i) => ({ id: i + 1, name, effort_rating: 3 }));
       MOCK.assignments = [];
       MOCK.submissions = [];
       MOCK.curricula = [];
       dismissedSigs = new Set();
-      activeFlags = []; // no submissions → no flags
-      saveState();
+      activeFlags = [];
+      // Clear localStorage completely for this user
+      ['acc_v2_students', 'acc_v2_assignments', 'acc_v2_submissions', 'acc_v2_dismissed', 'acc_v2_curricula']
+        .forEach(k => localStorage.removeItem(userKey(k)));
+      // Delete old Firebase data first, then save fresh
+      const email = getLoggedInEmail();
+      if (email) {
+        try { await fetch(`${FIREBASE_URL}/teacherData/${fbSanitizeKey(email)}.json`, { method: 'DELETE' }); } catch (_) { }
+      }
+      // Now save the clean state
       localStorage.setItem(getSetupKey(), '1');
       localStorage.removeItem('tc_demo_mode');
       isDemoMode = false;
       setupDone = true;
+      saveState(); // saves only the new students, empty assignments/submissions
       document.getElementById('setup-root')?.remove();
       document.getElementById('app-layout').style.display = '';
+      recomputeFlags();
       render();
     }
 
@@ -7662,6 +7672,33 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       // For demo sessions, clear Firebase so the student portal shows nothing.
       // For real sessions, do NOT sync on boot
       if (setupDone && isDemoMode && classCode) fbClearAllUnfinished(classCode);
+
+      // If NOT in demo mode but MOCK still has demo defaults (no saved data found),
+      // wipe them so teachers don't see phantom demo assignments/submissions
+      if (setupDone && !isDemoMode) {
+        const demoNames = DEMO_DEFAULTS.students.map(s => s.name);
+        const hasDemoStudents = MOCK.students.some(s => demoNames.includes(s.name));
+        // If the only students are demo students, or assignments match demo defaults, clear them
+        if (hasDemoStudents && MOCK.students.every(s => demoNames.includes(s.name))) {
+          // All students are demo — strip demo assignments and submissions but keep the teacher's students
+          MOCK.assignments = [];
+          MOCK.submissions = [];
+          MOCK.curricula = [];
+          dismissedSigs = new Set();
+          activeFlags = [];
+          saveState();
+        } else if (MOCK.assignments.length > 0) {
+          // Teacher has real students but demo assignments/submissions leaked in — filter them out
+          const realStudentIds = new Set(MOCK.students.map(s => s.id));
+          const demoAssignIds = new Set(DEMO_DEFAULTS.assignments.map(a => a.id));
+          // Remove submissions that belong to demo students
+          MOCK.submissions = MOCK.submissions.filter(sub => realStudentIds.has(sub.student_id));
+          // Remove assignments that have zero submissions (demo leftovers)
+          const assignsWithSubs = new Set(MOCK.submissions.map(s => s.assignment_id));
+          MOCK.assignments = MOCK.assignments.filter(a => assignsWithSubs.has(a.id));
+          saveState();
+        }
+      }
 
       if (!setupDone) {
         document.getElementById('app-layout').style.display = 'none';
