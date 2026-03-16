@@ -318,6 +318,60 @@
       background: #0f1117 !important;
     }
 
+    /* Grid table dark mode */
+    [data-theme="dark"] .grid-wrap {
+      background: #1a1d27;
+      border-color: #2d3344;
+    }
+    [data-theme="dark"] .grid-table th,
+    [data-theme="dark"] .grid-table td {
+      border-color: #2d3344;
+    }
+    [data-theme="dark"] .grid-table thead th {
+      background: #22252f;
+      color: #e2e8f0;
+    }
+    [data-theme="dark"] .grid-table td.assign-name {
+      background: #22252f;
+      color: #e2e8f0;
+    }
+    [data-theme="dark"] .grid-table td.assign-name:hover {
+      background: rgba(13, 148, 136, .1);
+    }
+    [data-theme="dark"] .grid-table td.grid-cell:hover,
+    [data-theme="dark"] .grid-table td.grid-empty:hover {
+      background: rgba(13, 148, 136, .08);
+    }
+    [data-theme="dark"] .grid-stud-name {
+      color: #cbd5e1;
+    }
+    [data-theme="dark"] .add-row-btn {
+      background: #1a1d27;
+      border-top-color: #2d3344;
+    }
+    [data-theme="dark"] .add-row-btn:hover {
+      background: rgba(13, 148, 136, .08);
+    }
+    [data-theme="dark"] .add-sub-btn {
+      border-color: rgba(45, 212, 191, .25);
+    }
+    [data-theme="dark"] .add-sub-btn:hover {
+      background: rgba(13, 148, 136, .08);
+    }
+    [data-theme="dark"] .grid-table td.grid-empty {
+      background: transparent;
+    }
+    /* Flagged cell tinted backgrounds in dark mode */
+    [data-theme="dark"] [style*="background:#fff1f2"] {
+      background: rgba(239, 68, 68, .12) !important;
+    }
+    [data-theme="dark"] [style*="background:#fff7ed"] {
+      background: rgba(249, 115, 22, .1) !important;
+    }
+    [data-theme="dark"] [style*="background:#fefce8"] {
+      background: rgba(234, 179, 8, .08) !important;
+    }
+
     /* Setup overlay dark mode */
     [data-theme="dark"] .setup-overlay {
       background: linear-gradient(135deg, #0f1117 0%, #131620 50%, #111827 100%);
@@ -4090,6 +4144,13 @@ ${contentText.slice(0, 6000)}`
       localStorage.removeItem('tc_demo_mode');
       isDemoMode = false;
       setupDone = false;
+      // Wipe in-memory data so demo flags/students don't bleed through
+      MOCK.students = [];
+      MOCK.assignments = [];
+      MOCK.submissions = [];
+      MOCK.curricula = [];
+      dismissedSigs = new Set();
+      activeFlags = [];
       // Clear Firebase teacher data so other devices also reset
       const email = getLoggedInEmail();
       if (email) {
