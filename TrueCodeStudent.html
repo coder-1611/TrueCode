@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>TrueCode — Submit Your Code</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f5f6f8;
+      color: #1a1a2e;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px 60px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e6ec;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .brand { font-size: 13px; font-weight: 700; color: #0d9488; letter-spacing: .04em }
+    .page-header { display: flex; flex-direction: column; gap: 6px }
+    h1 { font-size: 22px; font-weight: 600 }
+    p.sub { font-size: 13px; color: #6b7280 }
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #e2e6ec;
+    }
+    .step-dot.active { background: #0d9488 }
+    .step-dot.done { background: #16a34a }
+    label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px }
+    .required { color: #ef4444 }
+    input, textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .2s ease;
+    }
+    input:focus, textarea:focus { border-color: #0d9488 }
+    input.error { border-color: #ef4444 }
+    select {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .2s ease;
+    }
+    select:focus { border-color: #0d9488 }
+    .code-area {
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      height: 260px;
+      resize: vertical;
+      tab-size: 4;
+    }
+    .row { display: flex; gap: 8px }
+    .row input { flex: 1 }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #6b7280;
+      transition: all .2s ease;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: #1a1a2e;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+    .btn {
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+    .btn:hover { transform: scale(1.03) }
+    .btn:active { transform: scale(.98) }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none }
+    .btn-primary { background: #0d9488; color: #fff; width: 100%; padding: 12px; font-size: 14px; font-weight: 500 }
+    .btn-primary:hover:not(:disabled) { background: #0f766e }
+    .btn-outline { background: #fff; border: 1px solid #d1d5db; color: #374151; white-space: nowrap }
+    .btn-outline:hover:not(:disabled) { background: #f9fafb }
+    .btn-back {
+      background: none; border: none; padding: 0;
+      font-size: 12px; color: #6b7280; cursor: pointer;
+      display: flex; align-items: center; gap: 4px;
+      align-self: flex-start;
+    }
+    .btn-back:hover { color: #0d9488 }
+    .msg { padding: 12px; border-radius: 8px; font-size: 13px }
+    .msg-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c }
+    .msg-ok    { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534 }
+    .code-preview {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 180px;
+      overflow: auto;
+      white-space: pre-wrap;
+      margin-top: 10px;
+    }
+    .success-screen {
+      text-align: center;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .success-icon { font-size: 56px; color: #0d9488 }
+    .hint { font-size: 12px; color: #9ca3af }
+    .divider { border: none; border-top: 1px solid #e2e6ec }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const FIREBASE_URL = 'https://truecodestudentend-df823-default-rtdb.firebaseio.com';
+
+    // Password hashing (must match teacher side)
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password + '_truecode_salt_2024');
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // ── State ─────────────────────────────────────────────────
+    let step         = 'code';     // 'code' | 'identity' | 'submit' | 'done'
+    let tab          = 'paste';    // 'paste' | 'codehs'
+    let classCode    = '';
+    let studentName  = '';
+    let assign       = '';
+    let code         = '';
+    let codehsUrl    = '';
+    let password     = '';
+    let unfinishedAssigns = null;  // null | [] | string[]
+
+    let isGroup      = false;   // group submission toggle
+    let groupMembers = [];     // [{name:'', password:''}] — extra members beyond the lead
+
+    let validating   = false;
+    let codeValid    = null;
+    let classData    = null;
+    let fetching     = false;
+    let fetchError   = '';
+    let fetchedName  = '';
+    let submitting   = false;
+    let error        = '';
+
+    // ── Helpers ───────────────────────────────────────────────
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function sanitizeKey(s) {
+      return String(s).trim().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    }
+
+    // ── Firebase ──────────────────────────────────────────────
+    async function validateCode(cc) {
+      const res = await fetch(`${FIREBASE_URL}/classCodes/${cc.trim()}.json`);
+      if (!res.ok) throw new Error('Could not reach server');
+      const data = await res.json();
+      if (!data || !data.active) return null;
+      return data; // {active, students, assignments, passwords}
+    }
+
+    async function fetchUnfinished(cc, name) {
+      try {
+        const res = await fetch(`${FIREBASE_URL}/unfinished/${cc.trim()}/${sanitizeKey(name)}.json`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data) return null; // node missing = never synced → show all assignments as fallback
+        // Extract only string values — skips the _done boolean sentinel and any stray non-strings
+        const titles = Object.entries(data)
+          .filter(([k, v]) => k !== '_done' && typeof v === 'string')
+          .map(([, v]) => v);
+        if (titles.length > 0) return titles; // has real remaining assignments
+        if (data._done === true) return [];    // explicitly marked all done, nothing left
+        return null;                           // empty or unexpected node — show all as fallback
+      } catch(_) { return null; }
+    }
+
+    async function removeFromUnfinished(cc, name, assignName) {
+      try {
+        await fetch(`${FIREBASE_URL}/unfinished/${cc.trim()}/${sanitizeKey(name)}/${sanitizeKey(assignName)}.json`, {
+          method: 'DELETE'
+        });
+      } catch(_) {}
+    }
+
+    // Called after submitting the last assignment — writes { _done: true } so future logins
+    // correctly show "all done" instead of the fallback full list.
+    async function markAllDone(cc, name) {
+      try {
+        await fetch(`${FIREBASE_URL}/unfinished/${cc.trim()}/${sanitizeKey(name)}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _done: true })
+        });
+      } catch(_) {}
+    }
+
+    async function submitToFirebase(cc, sName, assignName, studentCode) {
+      const res = await fetch(`${FIREBASE_URL}/submissions/${cc.trim()}.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName:    sName.trim(),
+          assignmentName: assignName.trim(),
+          code:           studentCode,
+          submittedAt:    new Date().toISOString().slice(0, 10),
+          status:         'pending'
+        })
+      });
+      if (!res.ok) throw new Error(`Firebase error ${res.status}`);
+    }
+
+    // ── CodeHS scraping ───────────────────────────────────────
+    function parseCodeHSHtml(html) {
+      function decodeEntities(str) {
+        return str
+          .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+          .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+          .replace(/&#39;/g,"'").replace(/&#x27;/g,"'");
+      }
+      function matchBracket(src, startIdx) {
+        let depth=0, inStr=false, esc=false;
+        for (let j=startIdx; j<Math.min(src.length, startIdx+500000); j++) {
+          const c=src[j];
+          if (esc){esc=false;continue;}
+          if (c==='\\'&&inStr){esc=true;continue;}
+          if (c==='"'){inStr=!inStr;continue;}
+          if (!inStr){
+            if (c==='['||c==='{') depth++;
+            else if (c===']'||c==='}'){depth--;if(depth===0)return j;}
+          }
+        }
+        return startIdx;
+      }
+      let sName='';
+      for (const p of [/"codeUserName"\s*:\s*"([^"\\]+)"/,/"itemTitle"\s*:\s*"[^"]*-\s*([A-Z][^"]+?)"/,/"display_name"\s*:\s*"([^"\\]+)"/,/"full_name"\s*:\s*"([^"\\]+)"/]) {
+        const m=html.match(p);
+        if (m?.[1]?.trim()){sName=m[1].trim();break;}
+      }
+      let filesList=[];
+      const filesKeyPos=html.search(/"files"\s*:\s*\[/);
+      if (filesKeyPos>=0){
+        const arrayStart=html.indexOf('[',filesKeyPos);
+        const arrayEnd=matchBracket(html,arrayStart);
+        const filesJson=html.slice(arrayStart,arrayEnd+1);
+        try { filesList=JSON.parse(filesJson); }
+        catch(_){
+          const textRe=/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/g; let m;
+          while((m=textRe.exec(filesJson))!==null){
+            try {
+              const raw=JSON.parse('"'+m[1]+'"');
+              const decoded=decodeEntities(raw);
+              if(decoded.length>5&&!/^\d+$/.test(decoded.trim())) filesList.push({name:'code.py',text:decoded,hidden:false});
+            }catch(_){}
+          }
+        }
+      }
+      const codeFiles=filesList.filter(f=>!f.hidden&&f.name!=='.metadata'&&(f.text||'').trim().length>5&&!/^\d+$/.test((f.text||'').trim()));
+      let codeOut='';
+      if (codeFiles.length===1) codeOut=decodeEntities(codeFiles[0].text||'');
+      else if (codeFiles.length>1) codeOut=codeFiles.map(f=>{const bar='─'.repeat(Math.max(2,44-f.name.length));return `# ─── ${f.name} ${bar}\n${decodeEntities(f.text||'')}`;}).join('\n\n');
+      if (!sName&&!codeOut) throw new Error('Could not find code. Make sure the link is a public CodeHS sandbox URL.');
+      return {studentName: sName, code: codeOut};
+    }
+
+    async function fetchCodeHS(url) {
+      const enc=encodeURIComponent(url);
+      const proxies=[
+        `https://api.allorigins.win/raw?url=${enc}`,
+        `https://allorigins.hexlet.io/raw?url=${enc}`,
+        `https://api.codetabs.com/v1/proxy?quest=${enc}`,
+        `https://proxy.cors.sh/${url}`,
+        `https://thingproxy.freeboard.io/fetch/${url}`,
+        `https://corsproxy.io/?url=${enc}`,
+        `https://yacdn.org/proxy/${url}`,
+        `https://crossorigin.me/${url}`,
+        `https://cors.proxy.tools/?url=${enc}`,
+      ];
+      for (const proxy of proxies) {
+        try {
+          const res=await fetch(proxy,{signal:AbortSignal.timeout(10000),referrerPolicy:'no-referrer'});
+          if (res.ok){const text=await res.text();if(text.length>500)return parseCodeHSHtml(text);}
+        } catch(_){}
+      }
+      const err=new Error('All proxies blocked. Switch to "Paste code" tab and paste your code manually.');
+      err.isProxyBlocked=true; throw err;
+    }
+
+    // ── Page actions ──────────────────────────────────────────
+
+    // Page 1 → Page 2
+    async function continueFromCode() {
+      const cc = classCode.trim();
+      if (!cc) { error = 'Enter the class code your teacher gave you.'; render(); return; }
+      error = ''; validating = true; render();
+      try {
+        const data = await validateCode(cc);
+        if (!data) {
+          error = 'Class code not recognised — check with your teacher.';
+          validating = false; render(); return;
+        }
+        classData = data;
+        codeValid = true;
+        studentName = ''; password = ''; assign = ''; unfinishedAssigns = null;
+        isGroup = false; groupMembers = [];
+        step = 'identity';
+      } catch(e) {
+        error = 'Could not reach the server. Check your connection.';
+      }
+      validating = false; render();
+    }
+
+    // Page 2 → Page 3
+    async function continueFromIdentity() {
+      error = '';
+      if (!studentName) { error = 'Select your name from the list.'; render(); return; }
+      if (!password.trim()) { error = 'Enter your password.'; render(); return; }
+      const expected = classData?.passwords?.[studentName];
+      if (!expected) { error = 'No password set for your account — ask your teacher.'; render(); return; }
+      const hashedPw = await hashPassword(password);
+      if (hashedPw !== expected) { error = 'Incorrect password. Ask your teacher if you forgot it.'; render(); return; }
+
+      // Validate group members if group submission
+      if (isGroup) {
+        if (groupMembers.length === 0) { error = 'Add at least one group member.'; render(); return; }
+        for (let i = 0; i < groupMembers.length; i++) {
+          const gm = groupMembers[i];
+          if (!gm.name) { error = `Select a name for Member ${i + 2}.`; render(); return; }
+          if (gm.name === studentName) { error = `Member ${i + 2} cannot be the same as you.`; render(); return; }
+          if (!gm.password.trim()) { error = `Enter the password for ${gm.name}.`; render(); return; }
+          const gmExpected = classData?.passwords?.[gm.name];
+          if (!gmExpected) { error = `No password set for ${gm.name} — ask your teacher.`; render(); return; }
+          const gmHashed = await hashPassword(gm.password);
+          if (gmHashed !== gmExpected) { error = `Incorrect password for ${gm.name}.`; render(); return; }
+        }
+        // Check for duplicate group members
+        const names = groupMembers.map(g => g.name);
+        if (new Set(names).size !== names.length) { error = 'Each group member must be a different person.'; render(); return; }
+      }
+
+      // Password valid — fetch unfinished assignments from Firebase
+      validating = true; render();
+      unfinishedAssigns = await fetchUnfinished(classCode, studentName);
+      validating = false;
+      assign = ''; code = ''; codehsUrl = ''; fetchError = ''; fetchedName = '';
+      step = 'submit';
+      render();
+    }
+
+    // Page 3 → submit
+    async function submit() {
+      error = '';
+      if (!assign.trim()) { error = 'Select an assignment.'; render(); return; }
+      if (!code.trim()) { error = tab === 'codehs' ? 'Load your CodeHS link first.' : 'Paste your code.'; render(); return; }
+      submitting = true; render();
+      try {
+        // Build list of all submitters (lead + group members)
+        const allSubmitters = [studentName];
+        if (isGroup) {
+          for (const gm of groupMembers) {
+            if (gm.name) allSubmitters.push(gm.name);
+          }
+        }
+
+        // Submit for every member
+        for (const name of allSubmitters) {
+          await submitToFirebase(classCode, name, assign, code);
+        }
+
+        // Update unfinished list for every member
+        const currentList = Array.isArray(unfinishedAssigns)
+          ? unfinishedAssigns
+          : (classData?.assignments || []);
+        const newRemaining = currentList.filter(a => sanitizeKey(a) !== sanitizeKey(assign));
+
+        for (const name of allSubmitters) {
+          if (newRemaining.length === 0) {
+            await markAllDone(classCode, name);
+          } else {
+            const payload = Object.fromEntries(newRemaining.map(a => [sanitizeKey(a), a]));
+            await fetch(`${FIREBASE_URL}/unfinished/${classCode.trim()}/${sanitizeKey(name)}.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          }
+        }
+
+        unfinishedAssigns = newRemaining;
+        step = 'done';
+        assign = ''; code = ''; codehsUrl = ''; fetchedName = ''; fetchError = ''; error = '';
+      } catch(e) { error = 'Submission failed: ' + e.message; }
+      submitting = false; render();
+    }
+
+    async function loadCodeHS() {
+      if (!codehsUrl.trim()){ fetchError='Paste your CodeHS link first.'; render(); return; }
+      fetching=true; fetchError=''; fetchedName=''; code=''; render();
+      try {
+        const result=await fetchCodeHS(codehsUrl.trim());
+        code=result.code; fetchedName=result.studentName||'';
+
+        // Name mismatch check: if CodeHS returned a name, verify it matches one of the submitters
+        if (fetchedName) {
+          const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
+          const codehsNorm = normalize(fetchedName);
+          const allSubmitters = [studentName, ...(isGroup ? groupMembers.map(g => g.name) : [])].filter(Boolean);
+          const match = allSubmitters.some(name => normalize(name) === codehsNorm);
+          if (!match) {
+            const nameList = allSubmitters.join(', ');
+            fetchError = `CodeHS name "${fetchedName}" doesn't match any submitter (${nameList}). Make sure you're submitting the right person's code.`;
+            code = ''; fetchedName = '';
+          }
+        }
+      } catch(e){ fetchError=e.message; }
+      fetching=false; render();
+    }
+
+    // ── Render ────────────────────────────────────────────────
+    function render() {
+      document.getElementById('app').innerHTML = buildHTML();
+    }
+
+    function stepDots(current) {
+      const steps = ['code', 'identity', 'submit'];
+      const idx = steps.indexOf(current);
+      return `<div class="step-indicator">
+        ${steps.map((s, i) => `<div class="step-dot ${i < idx ? 'done' : i === idx ? 'active' : ''}"></div>`).join('')}
+        <span style="margin-left:4px">${idx + 1} of 3</span>
+      </div>`;
+    }
+
+    function buildHTML() {
+
+      // ── Success ──────────────────────────────────────────────
+      if (step === 'done') {
+        const remaining = Array.isArray(unfinishedAssigns) ? unfinishedAssigns.length : null;
+        const groupNames = isGroup && groupMembers.length > 0
+          ? [studentName, ...groupMembers.map(g => g.name)].filter(Boolean)
+          : null;
+        return `<div class="card">
+          <div class="brand">TrueCode</div>
+          <div class="success-screen">
+            <div class="success-icon">✅</div>
+            <h1>Submitted!</h1>
+            <p style="color:#6b7280">${groupNames
+              ? 'Code submitted for: <strong>' + groupNames.map(n => esc(n)).join(', ') + '</strong>'
+              : 'Your code has been sent to your teacher.'}</p>
+            ${remaining === 0
+              ? `<p class="msg msg-ok" style="width:100%;text-align:left">You've submitted all assignments — you're all done!</p>`
+              : remaining > 0
+                ? `<p style="font-size:13px;color:#374151">You have <strong>${remaining}</strong> assignment${remaining!==1?'s':''} left.</p>`
+                : ''}
+          </div>
+          <hr class="divider"/>
+          ${remaining === 0
+            ? `<button class="btn btn-outline" onclick="step='code';classCode='';classData=null;codeValid=null;studentName='';password='';unfinishedAssigns=null;isGroup=false;groupMembers=[];render()">Start over</button>`
+            : `<button class="btn btn-primary" onclick="step='submit';assign='';code='';codehsUrl='';fetchedName='';fetchError='';error='';render()">Submit another assignment</button>`
+          }
+        </div>`;
+      }
+
+      // ── Page 1: Class code ────────────────────────────────────
+      if (step === 'code') {
+        return `<div class="card">
+          <div class="brand">TrueCode</div>
+          <div class="page-header">
+            ${stepDots('code')}
+            <h1>Enter Class Code</h1>
+            <p class="sub">Ask your teacher for the class code to get started.</p>
+          </div>
+          <div>
+            <label>Class Code <span class="required">*</span></label>
+            <input
+              placeholder="e.g. PERIOD1 or MR-SMITH-CS"
+              value="${esc(classCode)}"
+              oninput="classCode=this.value;error=''"
+              onkeydown="if(event.key==='Enter')continueFromCode()"
+              autofocus
+            />
+          </div>
+          ${error ? `<div class="msg msg-error">${esc(error)}</div>` : ''}
+          <button class="btn btn-primary" onclick="continueFromCode()" ${validating ? 'disabled' : ''}>
+            ${validating ? 'Checking…' : 'Continue →'}
+          </button>
+        </div>`;
+      }
+
+      // ── Page 2: Name + password ───────────────────────────────
+      if (step === 'identity') {
+        const hasStudents = classData && Array.isArray(classData.students) && classData.students.length > 0;
+        const nameField = hasStudents
+          ? `<select onchange="studentName=this.value;error=''">
+               <option value="">— select your name —</option>
+               ${classData.students.map(s=>`<option value="${esc(s)}"${studentName===s?' selected':''}>${esc(s)}</option>`).join('')}
+             </select>`
+          : `<input placeholder="First and last name" value="${esc(studentName)}" oninput="studentName=this.value;error=''"/>`;
+
+        // Build group member fields
+        const groupMemberFields = isGroup ? groupMembers.map((gm, i) => {
+          const memberNameField = hasStudents
+            ? `<select onchange="groupMembers[${i}].name=this.value;error='';render()">
+                 <option value="">— select name —</option>
+                 ${classData.students.filter(s => s !== studentName && !groupMembers.some((g, j) => j !== i && g.name === s)).map(s =>
+                   `<option value="${esc(s)}"${gm.name===s?' selected':''}>${esc(s)}</option>`).join('')}
+               </select>`
+            : `<input placeholder="First and last name" value="${esc(gm.name)}" oninput="groupMembers[${i}].name=this.value;error=''"/>`;
+          return `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <label style="margin:0;font-size:12px;font-weight:600;color:#6366f1">Member ${i + 2}</label>
+              <button class="btn-back" style="font-size:11px" onclick="groupMembers.splice(${i},1);error='';render()">✕ Remove</button>
+            </div>
+            <div>
+              <label>Name <span class="required">*</span></label>
+              ${memberNameField}
+            </div>
+            <div>
+              <label>Password <span class="required">*</span></label>
+              <input type="password" placeholder="Their password"
+                value="${esc(gm.password)}"
+                oninput="groupMembers[${i}].password=this.value;error=''"/>
+            </div>
+          </div>`;
+        }).join('') : '';
+
+        return `<div class="card">
+          <div class="brand">TrueCode</div>
+          <div class="page-header">
+            ${stepDots('identity')}
+            <h1>Who Are You?</h1>
+            <p class="sub">Select your name and enter the password your teacher gave you.</p>
+          </div>
+          <div>
+            <label>Your Name <span class="required">*</span></label>
+            ${nameField}
+          </div>
+          <div>
+            <label>Password <span class="required">*</span></label>
+            <input type="password" placeholder="Password your teacher gave you"
+              value="${esc(password)}"
+              oninput="password=this.value;error=''"
+              onkeydown="if(event.key==='Enter'&&!isGroup)continueFromIdentity()"/>
+          </div>
+          <hr class="divider"/>
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" ${isGroup?'checked':''} onchange="isGroup=this.checked;if(!isGroup)groupMembers=[];else if(groupMembers.length===0)groupMembers.push({name:'',password:''});error='';render()" style="width:auto;margin:0"/>
+              <span style="font-size:13px;font-weight:500;color:#374151">This is a group submission</span>
+            </label>
+            <p class="hint" style="margin-top:4px">Check this if you worked with other students. All group members' passwords are required.</p>
+          </div>
+          ${isGroup ? `
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <label style="margin:0;font-size:13px;font-weight:600;color:#374151">Group Members</label>
+            ${groupMemberFields}
+            ${groupMembers.length < 5 ? `<button class="btn btn-outline" style="align-self:flex-start;font-size:12px" onclick="groupMembers.push({name:'',password:''});render()">+ Add member</button>` : ''}
+          </div>` : ''}
+          ${error ? `<div class="msg msg-error">${esc(error)}</div>` : ''}
+          <button class="btn btn-primary" onclick="continueFromIdentity()" ${validating ? 'disabled' : ''}>
+            ${validating ? 'Loading assignments…' : 'Continue →'}
+          </button>
+          <button class="btn-back" onclick="step='code';error='';render()">← Back</button>
+        </div>`;
+      }
+
+      // ── Page 3: Assignment + code ─────────────────────────────
+      if (step === 'submit') {
+        // Build assignment field from the unfinished list returned by Firebase
+        let assignField;
+        if (unfinishedAssigns === null) {
+          // Firebase fetch failed — fall back to full list
+          const all = classData?.assignments || [];
+          assignField = all.length
+            ? `<select onchange="assign=this.value;error=''">
+                 <option value="">— select an assignment —</option>
+                 ${all.map(a=>`<option value="${esc(a)}"${assign===a?' selected':''}>${esc(a)}</option>`).join('')}
+               </select>
+               <p class="hint" style="margin-top:6px">Showing all assignments (could not load your personal list).</p>`
+            : `<input placeholder="e.g. Hello World Lab" value="${esc(assign)}" oninput="assign=this.value"/>`;
+        } else if (unfinishedAssigns.length === 0) {
+          assignField = `<div class="msg msg-ok">You've already submitted all assignments — nothing left to do!</div>`;
+        } else {
+          assignField = `<select onchange="assign=this.value;error=''">
+            <option value="">— select an assignment —</option>
+            ${unfinishedAssigns.map(a=>`<option value="${esc(a)}"${assign===a?' selected':''}>${esc(a)}</option>`).join('')}
+          </select>
+          <p class="hint" style="margin-top:6px">${unfinishedAssigns.length} assignment${unfinishedAssigns.length!==1?'s':''} remaining.</p>`;
+        }
+
+        const allDone = Array.isArray(unfinishedAssigns) && unfinishedAssigns.length === 0;
+
+        const codeSection = tab==='paste' ? `
+          <div>
+            <label>Your Code <span class="required">*</span></label>
+            <textarea class="code-area" placeholder="Paste your Python code here…"
+              oninput="code=this.value">${esc(code)}</textarea>
+          </div>` : `
+          <div>
+            <label>CodeHS Link <span class="required">*</span></label>
+            <div class="row">
+              <input placeholder="https://codehs.com/sandbox/…"
+                value="${esc(codehsUrl)}" oninput="codehsUrl=this.value"
+                onkeydown="if(event.key==='Enter')loadCodeHS()"/>
+              <button class="btn btn-outline" onclick="loadCodeHS()" ${fetching?'disabled':''}>
+                ${fetching?'Loading…':'Load code'}
+              </button>
+            </div>
+            ${fetchError ? `<p style="font-size:12px;color:#b91c1c;margin-top:6px">${esc(fetchError)}</p>` : ''}
+            ${code ? `
+              <p style="font-size:12px;color:#16a34a;font-weight:500;margin-top:8px">
+                ✓ Code loaded${fetchedName?' — detected name: '+esc(fetchedName):''}
+              </p>
+              <pre class="code-preview">${esc(code)}</pre>` : ''}
+          </div>`;
+
+        return `<div class="card">
+          <div class="brand">TrueCode</div>
+          <div class="page-header">
+            ${stepDots('submit')}
+            <h1>Submit Your Code</h1>
+            <p class="sub">Hi <strong>${esc(studentName)}</strong>${isGroup && groupMembers.length > 0 ? ' <span style="color:#6366f1">(group: ' + [studentName, ...groupMembers.map(g=>g.name)].filter(Boolean).map(n=>esc(n)).join(', ') + ')</span>' : ''} — select an assignment and paste your code below.</p>
+          </div>
+          <div>
+            <label>Assignment <span class="required">*</span></label>
+            ${assignField}
+          </div>
+          ${allDone ? '' : `
+          <div>
+            <label>How are you submitting? <span class="required">*</span></label>
+            <div class="tabs">
+              <button class="tab-btn${tab==='paste'?' active':''}" onclick="tab='paste';fetchError='';render()">Paste code</button>
+              <button class="tab-btn${tab==='codehs'?' active':''}" onclick="tab='codehs';fetchError='';render()">CodeHS link</button>
+            </div>
+          </div>
+          ${codeSection}
+          ${error ? `<div class="msg msg-error">${esc(error)}</div>` : ''}
+          <button class="btn btn-primary" onclick="submit()" ${submitting||(tab==='codehs'&&fetching)?'disabled':''}>
+            ${submitting?'Submitting…':'Submit Code'}
+          </button>`}
+          <button class="btn-back" onclick="step='identity';password='';error='';render()">← Back</button>
+        </div>`;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
