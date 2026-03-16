@@ -5569,6 +5569,9 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       <div class="muted" style="margin-top:4px">Lvl 1–5 per assignment →</div>
     </div>`: ''}
   </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    <button class="btn btn-outline" style="color:#b91c1c;border-color:#fecaca;font-size:12px;padding:6px 14px" onclick="deleteStudent(${student.id})">Remove student</button>
+  </div>
   <h2>Submission history</h2>
   ${subs.length ? subs.map(sub => {
         const assign = getAssignment(sub.assignment_id);
@@ -6216,6 +6219,20 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     function showPage(p) { activePage = p; expandedSub = null; render(); }
     function showAssignment(id) { currentAssignId = id; activePage = 'assignment-detail'; expandedSub = null; render(); }
     function showStudent(id) { currentStudId = id; activePage = 'student-detail'; expandedSub = null; render(); }
+    function deleteStudent(id) {
+      const s = MOCK.students.find(x => x.id === id);
+      if (!s) return;
+      if (!confirm(`Remove ${s.name}? This will delete all their submissions and flags permanently.`)) return;
+      MOCK.submissions = MOCK.submissions.filter(sub => sub.student_id !== id);
+      MOCK.students = MOCK.students.filter(x => x.id !== id);
+      activeFlags = activeFlags.filter(f => {
+        const sub = getSubmission(f.submission_id);
+        return sub && sub.student_id !== id;
+      });
+      saveState();
+      recomputeFlags();
+      showPage('students');
+    }
     function toggleSub(id) { expandedSub = expandedSub === id ? null : id; render(); }
     function dismissFlag(id) {
       const f = activeFlags.find(f => f.id === id);
