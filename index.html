@@ -323,51 +323,65 @@
       background: #1a1d27;
       border-color: #2d3344;
     }
+
     [data-theme="dark"] .grid-table th,
     [data-theme="dark"] .grid-table td {
       border-color: #2d3344;
     }
+
     [data-theme="dark"] .grid-table thead th {
       background: #22252f;
       color: #e2e8f0;
     }
+
     [data-theme="dark"] .grid-table td.assign-name {
       background: #22252f;
       color: #e2e8f0;
     }
+
     [data-theme="dark"] .grid-table td.assign-name:hover {
       background: rgba(13, 148, 136, .1);
     }
+
     [data-theme="dark"] .grid-table td.grid-cell:hover,
     [data-theme="dark"] .grid-table td.grid-empty:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .grid-stud-name {
       color: #cbd5e1;
     }
+
     [data-theme="dark"] .add-row-btn {
       background: #1a1d27;
       border-top-color: #2d3344;
     }
+
     [data-theme="dark"] .add-row-btn:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .add-sub-btn {
       border-color: rgba(45, 212, 191, .25);
     }
+
     [data-theme="dark"] .add-sub-btn:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .grid-table td.grid-empty {
       background: transparent;
     }
+
     /* Flagged cell tinted backgrounds in dark mode */
     [data-theme="dark"] [style*="background:#fff1f2"] {
       background: rgba(239, 68, 68, .12) !important;
     }
+
     [data-theme="dark"] [style*="background:#fff7ed"] {
       background: rgba(249, 115, 22, .1) !important;
     }
+
     [data-theme="dark"] [style*="background:#fefce8"] {
       background: rgba(234, 179, 8, .08) !important;
     }
@@ -671,6 +685,30 @@
 
     .btn-outline:hover {
       background: var(--bg-card-hover)
+    }
+
+    .term-chip-btn {
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .term-chip-btn:hover {
+      background: #4338ca;
+      color: #fff;
+    }
+    [data-theme="dark"] .term-chip-btn {
+      background: #312e81;
+      color: #a5b4fc;
+      border-color: #4338ca;
+    }
+    [data-theme="dark"] .term-chip-btn:hover {
+      background: #4f46e5;
+      color: #fff;
     }
 
     .btn-drive {
@@ -4664,6 +4702,18 @@ ${contentText.slice(0, 6000)}`
         t.innerHTML = `<div style="position:fixed;bottom:24px;right:24px;background:#1e1e2e;color:#a6e3a1;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.35)">${esc(syncBadge)}</div>`;
         document.body.appendChild(t);
       }
+      // Restore focus to term search input after re-render
+      if (window._termSearchActive) {
+        requestAnimationFrame(() => {
+          const inp = document.getElementById('curr-term-search-input');
+          if (inp) {
+            inp.focus();
+            const pos = window._termSearchCursor || inp.value.length;
+            inp.setSelectionRange(pos, pos);
+          }
+          window._termSearchActive = false;
+        });
+      }
     }
 
     // ── Shared helpers ────────────────────────────────────────
@@ -5247,6 +5297,33 @@ ${contentText.slice(0, 6000)}`
       return PYTHON_TERM_BANK.filter(t => !existing.has(t.toLowerCase()));
     }
 
+    function handleTermSearch(el) {
+      currTermSearch = el.value;
+      window._termSearchActive = true;
+      window._termSearchCursor = el.selectionStart;
+      _saveCurrFormState();
+      // Update only the chips container, not the full page
+      const container = document.getElementById('term-chips-container');
+      if (container) {
+        const targetId = parseInt(container.dataset.targetId || '0');
+        const existingRaw = container.dataset.existing || '[]';
+        let existing;
+        try { existing = JSON.parse(existingRaw); } catch (_) { existing = []; }
+        const available = getAvailableTerms(existing);
+        const searchVal = currTermSearch.toLowerCase();
+        const filtered = searchVal ? available.filter(t => t.toLowerCase().includes(searchVal)) : available;
+        let chips = '';
+        for (const term of filtered) {
+          chips += `<button type="button" class="term-chip-btn" onclick="pickTerm('${esc(term)}',${targetId})">${esc(term)}</button>`;
+        }
+        if (filtered.length === 0 && searchVal) {
+          chips += `<span style="font-size:12px;color:#9ca3af;padding:8px 0">No terms matching "${esc(currTermSearch)}"</span>`;
+        }
+        chips += `<button type="button" onclick="_saveCurrFormState();otherTermOpen=true;render()" style="background:#f3f4f6;color:#6b7280;border:1px dashed #9ca3af;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;font-weight:500">+ Other</button>`;
+        container.innerHTML = chips;
+      }
+    }
+
     function renderTermChips(existingTerms, targetId) {
       const available = getAvailableTerms(existingTerms);
       if (available.length === 0 && !otherTermOpen) {
@@ -5255,10 +5332,10 @@ ${contentText.slice(0, 6000)}`
       }
       const searchVal = currTermSearch.toLowerCase();
       const filtered = searchVal ? available.filter(t => t.toLowerCase().includes(searchVal)) : available;
-      let html = `<input class="form-input" placeholder="Search terms..." value="${esc(currTermSearch)}" oninput="currTermSearch=this.value;_saveCurrFormState();render()" style="font-size:12px;padding:6px 10px;margin-bottom:8px;width:100%"/>`;
-      html += `<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0">`;
+      let html = `<input class="form-input" id="curr-term-search-input" placeholder="Search terms..." value="${esc(currTermSearch)}" oninput="handleTermSearch(this)" style="font-size:12px;padding:6px 10px;margin-bottom:8px;width:100%"/>`;
+      html += `<div id="term-chips-container" data-target-id="${targetId}" data-existing='${JSON.stringify(existingTerms).replace(/'/g, '&#39;')}' style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0">`;
       for (const term of filtered) {
-        html += `<button type="button" onclick="pickTerm('${esc(term)}',${targetId})" style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;font-weight:500;transition:all 0.15s" onmouseover="this.style.background='#4338ca';this.style.color='#fff'" onmouseout="this.style.background='#eef2ff';this.style.color='#4338ca'">${esc(term)}</button>`;
+        html += `<button type="button" class="term-chip-btn" onclick="pickTerm('${esc(term)}',${targetId})">${esc(term)}</button>`;
       }
       if (filtered.length === 0 && searchVal) {
         html += `<span style="font-size:12px;color:#9ca3af;padding:8px 0">No terms matching "${esc(currTermSearch)}"</span>`;
@@ -5267,16 +5344,19 @@ ${contentText.slice(0, 6000)}`
       html += `</div>`;
       if (otherTermOpen) {
         html += `<div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-          <input class="form-input" id="other-term-input" placeholder="e.g. counting, repeating code, storing data" style="flex:1;font-size:12px;padding:6px 10px"/>
-          <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="resolveOtherTerm(${targetId})" ${otherTermLoading ? 'disabled' : ''}>
-            ${otherTermLoading ? '…' : 'Add'}
+          <input class="form-input" id="other-term-input" placeholder="e.g. recursion, or describe: repeating code" style="flex:1;font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter'){event.preventDefault();addOtherTermDirect(${targetId})}"/>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="addOtherTermDirect(${targetId})">
+            Add
+          </button>
+          <button class="btn btn-outline" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="resolveOtherTerm(${targetId})" ${otherTermLoading ? 'disabled' : ''}>
+            ${otherTermLoading ? '…' : 'Ask Groq'}
           </button>
           <button class="btn btn-outline" style="font-size:12px;padding:6px 10px" onclick="_saveCurrFormState();otherTermOpen=false;otherTermError='';render()">Cancel</button>
         </div>`;
         if (otherTermError) {
           html += `<p style="font-size:11px;color:#b91c1c;margin-top:6px">${esc(otherTermError)}</p>`;
         }
-        html += `<p style="font-size:11px;color:#9ca3af;margin-top:4px">Describe the concept in plain English — Groq will match it to the right Python term.</p>`;
+        html += `<p style="font-size:11px;color:#9ca3af;margin-top:4px">"Add" adds the term exactly as typed. "Ask Groq" translates plain English to Python terms.</p>`;
       }
       return html;
     }
@@ -5306,6 +5386,18 @@ ${contentText.slice(0, 6000)}`
       _saveCurrFormState();
       if (!window._manualStagedTerms) return;
       window._manualStagedTerms.splice(index, 1);
+      render();
+    }
+
+    function addOtherTermDirect(currId) {
+      _saveCurrFormState();
+      const input = document.getElementById('other-term-input');
+      const val = (input?.value || '').trim();
+      if (!val) { otherTermError = 'Type a term.'; render(); return; }
+      // Add each comma-separated term
+      const terms = val.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      for (const t of terms) pickTerm(t, currId);
+      otherTermOpen = false; otherTermError = '';
       render();
     }
 
@@ -6301,6 +6393,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       });
       saveState();
       recomputeFlags();
+      if (classCode) fbRegisterCode(classCode);
       showPage('students');
     }
     function toggleSub(id) { expandedSub = expandedSub === id ? null : id; render(); }
@@ -7702,8 +7795,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
           MOCK.assignments = MOCK.assignments.filter(a => !demoAssignTitles.has(a.title));
           MOCK.submissions = MOCK.submissions.filter(s => !demoSubCodes.has(s.code));
           MOCK.curricula = MOCK.curricula.filter(c => {
-            const demoCurNames = new Set((DEMO_DEFAULTS.curricula || []).map(dc => dc.name));
-            return !demoCurNames.has(c.name);
+            const demoCurTitles = new Set((DEMO_DEFAULTS.curricula || []).map(dc => dc.title));
+            return !demoCurTitles.has(c.title);
           });
           dismissedSigs = new Set();
           activeFlags = [];
