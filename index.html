@@ -930,16 +930,18 @@
     }
 
     .star-filled {
-      color: #f59e0b;
+      color: #f59e0b !important;
       filter: drop-shadow(0 1px 2px rgba(245, 158, 11, .3))
     }
 
     .star-empty {
-      color: #d1d5db
+      color: #f59e0b !important;
+      opacity: .25
     }
 
     .star:hover {
-      color: #f59e0b;
+      color: #f59e0b !important;
+      opacity: 1;
       transform: scale(1.2)
     }
 
@@ -1458,13 +1460,14 @@
     }
 
     .ar-star-on {
-      color: #f59e0b;
+      color: #f59e0b !important;
       font-size: 19px;
       line-height: 1
     }
 
     .ar-star-off {
-      color: #d1d5db;
+      color: #f59e0b !important;
+      opacity: .25;
       font-size: 19px;
       line-height: 1
     }
@@ -4821,6 +4824,7 @@ ${contentText.slice(0, 6000)}`
           <canvas class="hero-canvas" id="hero-particles"></canvas>
           <div class="hero-greeting">Hello, ${esc(firstName)}.</div>
           <div class="hero-date">${dateStr}</div>
+          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:6px">V1</div>
           <div class="hero-scroll-hint">
             <span>Scroll</span>
             <div class="hero-scroll-arrow"></div>
@@ -5513,7 +5517,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       const headerCells = students.map(s => {
         const ar = computeAutoRating(s.id);
         const hasFlags = MOCK.submissions.filter(sb => sb.student_id === s.id).some(sb => flagsForSub(sb.id).length > 0);
-        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:${i < ar.stars ? ar.color : '#e5e7eb'};font-size:13px">★</span>`).join('') : '';
+        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:#f59e0b;opacity:${i < ar.stars ? '1' : '.25'};font-size:13px">★</span>`).join('') : '';
         return `<th>
       <span class="grid-stud-name" onclick="showStudent(${s.id})" title="${esc(s.name)}">${esc(s.name)}</span>
       <div style="margin-top:3px">${stars}</div>
@@ -5579,7 +5583,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       return `<h1>Students</h1>${MOCK.students.map(s => {
         const allFlags = MOCK.submissions.filter(sub => sub.student_id === s.id).flatMap(sub => flagsForSub(sub.id));
         const ar = computeAutoRating(s.id);
-        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:${i < ar.stars ? ar.color : '#d1d5db'}">★</span>`).join('') : '—';
+        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:#f59e0b;opacity:${i < ar.stars ? '1' : '.25'}">★</span>`).join('') : '—';
         return `<div class="list-link student-list-item${allFlags.length ? ' has-flags' : ''}" onclick="showStudent(${s.id})">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         <span style="font-weight:500">${esc(s.name)}</span>
@@ -7639,10 +7643,21 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       if (!email) return;
       if (!confirm('Are you sure you want to delete your account? This will permanently remove all your data and cannot be undone.')) return;
       if (!confirm('This is irreversible. Delete account and all data?')) return;
+      // Fetch the class code from Firebase before deleting teacher data
+      // (in case local memory doesn't have it, e.g. deleting from a different device)
+      let codeToDelete = classCode;
+      if (!codeToDelete) {
+        try {
+          const res = await fetch(`${FIREBASE_URL}/teacherData/${fbSanitizeKey(email)}/classCode.json`);
+          if (res.ok) { const v = await res.json(); if (v) codeToDelete = v; }
+        } catch (_) { }
+      }
       // Remove user from Firebase and local cache
       await deleteTeacherAccount(email);
       // Delete all teacher data from Firebase
       try { await fetch(`${FIREBASE_URL}/teacherData/${fbSanitizeKey(email)}.json`, { method: 'DELETE' }); } catch (_) { }
+      // Delete the Firebase class code so students can no longer submit
+      if (codeToDelete) await fbDeleteCode(codeToDelete);
       // Remove account-specific setup key
       localStorage.removeItem(getSetupKey());
       // Clear this user's scoped data only (does not affect other accounts)
@@ -7655,8 +7670,6 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       // Clear session cookies
       deleteCookie('tc_logged_in');
       deleteCookie('tc_logged_in_email');
-      // Delete the Firebase class code if active
-      if (classCode) fbDeleteCode(classCode);
       // Full reload so all in-memory state (MOCK, flags, etc.) is wiped clean
       location.reload();
     }
