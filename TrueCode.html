@@ -323,51 +323,65 @@
       background: #1a1d27;
       border-color: #2d3344;
     }
+
     [data-theme="dark"] .grid-table th,
     [data-theme="dark"] .grid-table td {
       border-color: #2d3344;
     }
+
     [data-theme="dark"] .grid-table thead th {
       background: #22252f;
       color: #e2e8f0;
     }
+
     [data-theme="dark"] .grid-table td.assign-name {
       background: #22252f;
       color: #e2e8f0;
     }
+
     [data-theme="dark"] .grid-table td.assign-name:hover {
       background: rgba(13, 148, 136, .1);
     }
+
     [data-theme="dark"] .grid-table td.grid-cell:hover,
     [data-theme="dark"] .grid-table td.grid-empty:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .grid-stud-name {
       color: #cbd5e1;
     }
+
     [data-theme="dark"] .add-row-btn {
       background: #1a1d27;
       border-top-color: #2d3344;
     }
+
     [data-theme="dark"] .add-row-btn:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .add-sub-btn {
       border-color: rgba(45, 212, 191, .25);
     }
+
     [data-theme="dark"] .add-sub-btn:hover {
       background: rgba(13, 148, 136, .08);
     }
+
     [data-theme="dark"] .grid-table td.grid-empty {
       background: transparent;
     }
+
     /* Flagged cell tinted backgrounds in dark mode */
     [data-theme="dark"] [style*="background:#fff1f2"] {
       background: rgba(239, 68, 68, .12) !important;
     }
+
     [data-theme="dark"] [style*="background:#fff7ed"] {
       background: rgba(249, 115, 22, .1) !important;
     }
+
     [data-theme="dark"] [style*="background:#fefce8"] {
       background: rgba(234, 179, 8, .08) !important;
     }
@@ -673,6 +687,30 @@
       background: var(--bg-card-hover)
     }
 
+    .term-chip-btn {
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .term-chip-btn:hover {
+      background: #4338ca;
+      color: #fff;
+    }
+    [data-theme="dark"] .term-chip-btn {
+      background: #312e81;
+      color: #a5b4fc;
+      border-color: #4338ca;
+    }
+    [data-theme="dark"] .term-chip-btn:hover {
+      background: #4f46e5;
+      color: #fff;
+    }
+
     .btn-drive {
       background: #fff;
       color: #1a73e8;
@@ -930,16 +968,18 @@
     }
 
     .star-filled {
-      color: #f59e0b;
+      color: #f59e0b !important;
       filter: drop-shadow(0 1px 2px rgba(245, 158, 11, .3))
     }
 
     .star-empty {
-      color: #d1d5db
+      color: #f59e0b !important;
+      opacity: .25
     }
 
     .star:hover {
-      color: #f59e0b;
+      color: #f59e0b !important;
+      opacity: 1;
       transform: scale(1.2)
     }
 
@@ -1458,13 +1498,14 @@
     }
 
     .ar-star-on {
-      color: #f59e0b;
+      color: #f59e0b !important;
       font-size: 19px;
       line-height: 1
     }
 
     .ar-star-off {
-      color: #d1d5db;
+      color: #f59e0b !important;
+      opacity: .25;
       font-size: 19px;
       line-height: 1
     }
@@ -4661,6 +4702,18 @@ ${contentText.slice(0, 6000)}`
         t.innerHTML = `<div style="position:fixed;bottom:24px;right:24px;background:#1e1e2e;color:#a6e3a1;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.35)">${esc(syncBadge)}</div>`;
         document.body.appendChild(t);
       }
+      // Restore focus to term search input after re-render
+      if (window._termSearchActive) {
+        requestAnimationFrame(() => {
+          const inp = document.getElementById('curr-term-search-input');
+          if (inp) {
+            inp.focus();
+            const pos = window._termSearchCursor || inp.value.length;
+            inp.setSelectionRange(pos, pos);
+          }
+          window._termSearchActive = false;
+        });
+      }
     }
 
     // ── Shared helpers ────────────────────────────────────────
@@ -5243,6 +5296,33 @@ ${contentText.slice(0, 6000)}`
       return PYTHON_TERM_BANK.filter(t => !existing.has(t.toLowerCase()));
     }
 
+    function handleTermSearch(el) {
+      currTermSearch = el.value;
+      window._termSearchActive = true;
+      window._termSearchCursor = el.selectionStart;
+      _saveCurrFormState();
+      // Update only the chips container, not the full page
+      const container = document.getElementById('term-chips-container');
+      if (container) {
+        const targetId = parseInt(container.dataset.targetId || '0');
+        const existingRaw = container.dataset.existing || '[]';
+        let existing;
+        try { existing = JSON.parse(existingRaw); } catch (_) { existing = []; }
+        const available = getAvailableTerms(existing);
+        const searchVal = currTermSearch.toLowerCase();
+        const filtered = searchVal ? available.filter(t => t.toLowerCase().includes(searchVal)) : available;
+        let chips = '';
+        for (const term of filtered) {
+          chips += `<button type="button" class="term-chip-btn" onclick="pickTerm('${esc(term)}',${targetId})">${esc(term)}</button>`;
+        }
+        if (filtered.length === 0 && searchVal) {
+          chips += `<span style="font-size:12px;color:#9ca3af;padding:8px 0">No terms matching "${esc(currTermSearch)}"</span>`;
+        }
+        chips += `<button type="button" onclick="_saveCurrFormState();otherTermOpen=true;render()" style="background:#f3f4f6;color:#6b7280;border:1px dashed #9ca3af;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;font-weight:500">+ Other</button>`;
+        container.innerHTML = chips;
+      }
+    }
+
     function renderTermChips(existingTerms, targetId) {
       const available = getAvailableTerms(existingTerms);
       if (available.length === 0 && !otherTermOpen) {
@@ -5251,10 +5331,10 @@ ${contentText.slice(0, 6000)}`
       }
       const searchVal = currTermSearch.toLowerCase();
       const filtered = searchVal ? available.filter(t => t.toLowerCase().includes(searchVal)) : available;
-      let html = `<input class="form-input" placeholder="Search terms..." value="${esc(currTermSearch)}" oninput="currTermSearch=this.value;_saveCurrFormState();render()" style="font-size:12px;padding:6px 10px;margin-bottom:8px;width:100%"/>`;
-      html += `<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0">`;
+      let html = `<input class="form-input" id="curr-term-search-input" placeholder="Search terms..." value="${esc(currTermSearch)}" oninput="handleTermSearch(this)" style="font-size:12px;padding:6px 10px;margin-bottom:8px;width:100%"/>`;
+      html += `<div id="term-chips-container" data-target-id="${targetId}" data-existing='${JSON.stringify(existingTerms).replace(/'/g, '&#39;')}' style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0">`;
       for (const term of filtered) {
-        html += `<button type="button" onclick="pickTerm('${esc(term)}',${targetId})" style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;font-weight:500;transition:all 0.15s" onmouseover="this.style.background='#4338ca';this.style.color='#fff'" onmouseout="this.style.background='#eef2ff';this.style.color='#4338ca'">${esc(term)}</button>`;
+        html += `<button type="button" class="term-chip-btn" onclick="pickTerm('${esc(term)}',${targetId})">${esc(term)}</button>`;
       }
       if (filtered.length === 0 && searchVal) {
         html += `<span style="font-size:12px;color:#9ca3af;padding:8px 0">No terms matching "${esc(currTermSearch)}"</span>`;
@@ -5263,16 +5343,19 @@ ${contentText.slice(0, 6000)}`
       html += `</div>`;
       if (otherTermOpen) {
         html += `<div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-          <input class="form-input" id="other-term-input" placeholder="e.g. counting, repeating code, storing data" style="flex:1;font-size:12px;padding:6px 10px"/>
-          <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="resolveOtherTerm(${targetId})" ${otherTermLoading ? 'disabled' : ''}>
-            ${otherTermLoading ? '…' : 'Add'}
+          <input class="form-input" id="other-term-input" placeholder="e.g. recursion, or describe: repeating code" style="flex:1;font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter'){event.preventDefault();addOtherTermDirect(${targetId})}"/>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="addOtherTermDirect(${targetId})">
+            Add
+          </button>
+          <button class="btn btn-outline" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="resolveOtherTerm(${targetId})" ${otherTermLoading ? 'disabled' : ''}>
+            ${otherTermLoading ? '…' : 'Ask Groq'}
           </button>
           <button class="btn btn-outline" style="font-size:12px;padding:6px 10px" onclick="_saveCurrFormState();otherTermOpen=false;otherTermError='';render()">Cancel</button>
         </div>`;
         if (otherTermError) {
           html += `<p style="font-size:11px;color:#b91c1c;margin-top:6px">${esc(otherTermError)}</p>`;
         }
-        html += `<p style="font-size:11px;color:#9ca3af;margin-top:4px">Describe the concept in plain English — Groq will match it to the right Python term.</p>`;
+        html += `<p style="font-size:11px;color:#9ca3af;margin-top:4px">"Add" adds the term exactly as typed. "Ask Groq" translates plain English to Python terms.</p>`;
       }
       return html;
     }
@@ -5302,6 +5385,18 @@ ${contentText.slice(0, 6000)}`
       _saveCurrFormState();
       if (!window._manualStagedTerms) return;
       window._manualStagedTerms.splice(index, 1);
+      render();
+    }
+
+    function addOtherTermDirect(currId) {
+      _saveCurrFormState();
+      const input = document.getElementById('other-term-input');
+      const val = (input?.value || '').trim();
+      if (!val) { otherTermError = 'Type a term.'; render(); return; }
+      // Add each comma-separated term
+      const terms = val.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      for (const t of terms) pickTerm(t, currId);
+      otherTermOpen = false; otherTermError = '';
       render();
     }
 
@@ -5513,7 +5608,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       const headerCells = students.map(s => {
         const ar = computeAutoRating(s.id);
         const hasFlags = MOCK.submissions.filter(sb => sb.student_id === s.id).some(sb => flagsForSub(sb.id).length > 0);
-        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:${i < ar.stars ? ar.color : '#e5e7eb'};font-size:13px">★</span>`).join('') : '';
+        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:#f59e0b;opacity:${i < ar.stars ? '1' : '.25'};font-size:13px">★</span>`).join('') : '';
         return `<th>
       <span class="grid-stud-name" onclick="showStudent(${s.id})" title="${esc(s.name)}">${esc(s.name)}</span>
       <div style="margin-top:3px">${stars}</div>
@@ -5579,7 +5674,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       return `<h1>Students</h1>${MOCK.students.map(s => {
         const allFlags = MOCK.submissions.filter(sub => sub.student_id === s.id).flatMap(sub => flagsForSub(sub.id));
         const ar = computeAutoRating(s.id);
-        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:${i < ar.stars ? ar.color : '#d1d5db'}">★</span>`).join('') : '—';
+        const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:#f59e0b;opacity:${i < ar.stars ? '1' : '.25'}">★</span>`).join('') : '—';
         return `<div class="list-link student-list-item${allFlags.length ? ' has-flags' : ''}" onclick="showStudent(${s.id})">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         <span style="font-weight:500">${esc(s.name)}</span>
@@ -6297,6 +6392,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       });
       saveState();
       recomputeFlags();
+      if (classCode) fbRegisterCode(classCode);
       showPage('students');
     }
     function toggleSub(id) { expandedSub = expandedSub === id ? null : id; render(); }
@@ -6979,6 +7075,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     function renderSetup() {
       const header = `
     <div class="setup-logo">TrueCode</div>
+    <div style="font-size:11px;font-weight:600;color:#6366f1;letter-spacing:1px;margin-top:-2px;margin-bottom:4px">V1</div>
     <div class="setup-tagline">Code authenticity checker for teachers</div>`;
 
       if (setupStep === 'choice') return `
@@ -7639,10 +7736,21 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       if (!email) return;
       if (!confirm('Are you sure you want to delete your account? This will permanently remove all your data and cannot be undone.')) return;
       if (!confirm('This is irreversible. Delete account and all data?')) return;
+      // Fetch the class code from Firebase before deleting teacher data
+      // (in case local memory doesn't have it, e.g. deleting from a different device)
+      let codeToDelete = classCode;
+      if (!codeToDelete) {
+        try {
+          const res = await fetch(`${FIREBASE_URL}/teacherData/${fbSanitizeKey(email)}/classCode.json`);
+          if (res.ok) { const v = await res.json(); if (v) codeToDelete = v; }
+        } catch (_) { }
+      }
       // Remove user from Firebase and local cache
       await deleteTeacherAccount(email);
       // Delete all teacher data from Firebase
       try { await fetch(`${FIREBASE_URL}/teacherData/${fbSanitizeKey(email)}.json`, { method: 'DELETE' }); } catch (_) { }
+      // Delete the Firebase class code so students can no longer submit
+      if (codeToDelete) await fbDeleteCode(codeToDelete);
       // Remove account-specific setup key
       localStorage.removeItem(getSetupKey());
       // Clear this user's scoped data only (does not affect other accounts)
@@ -7655,8 +7763,6 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       // Clear session cookies
       deleteCookie('tc_logged_in');
       deleteCookie('tc_logged_in_email');
-      // Delete the Firebase class code if active
-      if (classCode) fbDeleteCode(classCode);
       // Full reload so all in-memory state (MOCK, flags, etc.) is wiped clean
       location.reload();
     }
@@ -7689,8 +7795,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
           MOCK.assignments = MOCK.assignments.filter(a => !demoAssignTitles.has(a.title));
           MOCK.submissions = MOCK.submissions.filter(s => !demoSubCodes.has(s.code));
           MOCK.curricula = MOCK.curricula.filter(c => {
-            const demoCurNames = new Set((DEMO_DEFAULTS.curricula || []).map(dc => dc.name));
-            return !demoCurNames.has(c.name);
+            const demoCurTitles = new Set((DEMO_DEFAULTS.curricula || []).map(dc => dc.title));
+            return !demoCurTitles.has(c.title);
           });
           dismissedSigs = new Set();
           activeFlags = [];
