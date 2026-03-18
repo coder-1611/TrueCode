@@ -711,6 +711,33 @@
       color: #fff;
     }
 
+    .editable {
+      cursor: pointer;
+      border-bottom: 1px dashed rgba(99,102,241,0.3);
+      transition: border-color 0.15s;
+    }
+    .editable:hover {
+      border-bottom-color: #6366f1;
+    }
+    [data-theme="dark"] .editable {
+      border-bottom-color: rgba(165,180,252,0.3);
+    }
+    [data-theme="dark"] .editable:hover {
+      border-bottom-color: #a5b4fc;
+    }
+    .edit-hint {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-left: 6px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .editable:hover + .edit-hint,
+    .editable:hover .edit-hint,
+    *:hover > .edit-hint {
+      opacity: 1;
+    }
+
     .btn-drive {
       background: #fff;
       color: #1a73e8;
@@ -5158,8 +5185,8 @@ ${contentText.slice(0, 6000)}`
 
       return `
   <a class="back-link" onclick="showPage('assignments')">← Assignments</a>
-  <h1>${esc(assign.title)} <span class="badge badge-type">${TYPE_LABELS[assign.assignment_type]}</span></h1>
-  ${assign.directions_text ? `<p class="muted" style="margin-bottom:16px;line-height:1.6">${esc(assign.directions_text)}</p>` : ''}
+  <h1><span class="editable" onclick="editAssignTitle(${id})" title="Click to edit">${esc(assign.title)}</span> <span class="badge badge-type editable" onclick="editAssignType(${id})" title="Click to cycle type">${TYPE_LABELS[assign.assignment_type]}</span></h1>
+  <p class="muted editable" style="margin-bottom:16px;line-height:1.6;${assign.directions_text ? '' : 'font-style:italic;'}" onclick="editAssignDirections(${id})" title="Click to edit">${assign.directions_text ? esc(assign.directions_text) : 'No directions — click to add'}</p>
   ${modelSection}
   ${currSection}
   ${subs.map(s => renderSubCard(s, true)).join('')}`;
@@ -5483,7 +5510,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       return `
 <a class="back-link" onclick="showPage('curriculum')">← Curriculum</a>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-  <h1>${esc(curr.title)}</h1>
+  <h1><span class="editable" onclick="editCurrTitle(${id})" title="Click to edit">${esc(curr.title)}</span></h1>
   <button class="btn btn-outline" style="font-size:11px;color:#b91c1c;border-color:#fecaca" onclick="deleteCurriculum(${id})">Delete</button>
 </div>
 <p class="muted" style="margin-bottom:20px">Created ${curr.created_at} · ${curr.terms.length} terms extracted</p>
@@ -5491,7 +5518,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin-bottom:24px">
   <h3 style="font-size:14px;font-weight:600;margin-bottom:10px;color:#166534">Terms Students Should Know</h3>
   <div style="display:flex;flex-wrap:wrap;gap:6px">${curr.terms.map((t, i) =>
-        `<span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px">${esc(t)}<button onclick="removeCurrTerm(${id},${i})" style="background:none;border:none;color:#166534;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;opacity:0.6" title="Remove term">×</button></span>`
+        `<span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px"><span style="cursor:pointer;border-bottom:1px dashed rgba(22,101,52,0.3)" onclick="editCurrTerm(${id},${i})" title="Click to edit">${esc(t)}</span><button onclick="removeCurrTerm(${id},${i})" style="background:none;border:none;color:#166534;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;opacity:0.6" title="Remove term">×</button></span>`
       ).join('')}</div>
   <h4 style="font-size:12px;font-weight:600;margin-top:16px;margin-bottom:8px;color:#166534">Add More Terms</h4>
   ${renderTermChips(curr.terms, id)}
@@ -5709,7 +5736,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 
       return `
   <a class="back-link" onclick="showPage('students')">← Students</a>
-  <h1>${esc(student.name)}</h1>
+  <h1><span class="editable" onclick="editStudentName(${student.id})" title="Click to edit">${esc(student.name)}</span></h1>
   <div class="meta-block">
     <div style="flex:1;min-width:220px">${renderAutoRating(student.id)}</div>
     <div style="display:flex;flex-direction:column;gap:6px;min-width:200px">
@@ -6416,6 +6443,72 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       s.password = val;
       saveState();
       if (classCode) fbRegisterCode(classCode); // push updated password to Firebase immediately
+    }
+
+    // ── Inline editing helpers ──────────────────────────────
+    function editStudentName(id) {
+      const s = MOCK.students.find(x => x.id === id);
+      if (!s) return;
+      const val = prompt('Edit student name:', s.name);
+      if (val !== null && val.trim()) {
+        s.name = val.trim();
+        saveState();
+        if (classCode) fbRegisterCode(classCode);
+        render();
+      }
+    }
+    function editAssignTitle(id) {
+      const a = getAssignment(id);
+      if (!a) return;
+      const val = prompt('Edit assignment title:', a.title);
+      if (val !== null && val.trim()) {
+        a.title = val.trim();
+        saveState();
+        if (classCode) fbRegisterCode(classCode);
+        render();
+      }
+    }
+    function editAssignType(id) {
+      const a = getAssignment(id);
+      if (!a) return;
+      const types = ['structured', 'semi_open', 'creative'];
+      const curr = types.indexOf(a.assignment_type);
+      const next = types[(curr + 1) % types.length];
+      a.assignment_type = next;
+      saveState();
+      recomputeFlags();
+      render();
+    }
+    function editAssignDirections(id) {
+      const a = getAssignment(id);
+      if (!a) return;
+      const val = prompt('Edit assignment directions:', a.directions_text || '');
+      if (val !== null) {
+        a.directions_text = val.trim();
+        saveState();
+        render();
+      }
+    }
+    function editCurrTitle(id) {
+      const c = getCurriculum(id);
+      if (!c) return;
+      const val = prompt('Edit curriculum title:', c.title);
+      if (val !== null && val.trim()) {
+        c.title = val.trim();
+        saveState();
+        render();
+      }
+    }
+    function editCurrTerm(currId, termIndex) {
+      const c = getCurriculum(currId);
+      if (!c || termIndex < 0 || termIndex >= c.terms.length) return;
+      const val = prompt('Edit term:', c.terms[termIndex]);
+      if (val !== null && val.trim()) {
+        c.terms[termIndex] = val.trim();
+        saveState();
+        recomputeFlags();
+        render();
+      }
     }
 
     // Clipboard helper — works on file:// (execCommand fallback) and https:// (Clipboard API)
