@@ -7412,6 +7412,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       saveState(); // sync demo state to Firebase
       document.getElementById('setup-root')?.remove();
       document.getElementById('app-layout').style.display = '';
+      showHeroWelcome();
       render();
       // Clear all unfinished assignments for demo students so portal shows nothing
       if (classCode) fbClearAllUnfinished(classCode);
@@ -7453,6 +7454,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       document.getElementById('setup-root')?.remove();
       document.getElementById('app-layout').style.display = '';
       recomputeFlags();
+      showHeroWelcome();
       render();
     }
 
