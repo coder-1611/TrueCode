@@ -4893,6 +4893,133 @@ ${contentText.slice(0, 6000)}`
 
     // ── Home page ─────────────────────────────────────────────
     let _heroShownThisSession = false;
+    function showHeroWelcome() {
+      if (_heroShownThisSession) return;
+      _heroShownThisSession = true;
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const firstName = (getLoggedInUserName() || 'Teacher').split(' ')[0];
+      document.querySelector('.hero-section')?.remove();
+      const hero = document.createElement('div');
+      hero.className = 'hero-section';
+      hero.innerHTML = `
+        <canvas class="hero-canvas" id="hero-particles"></canvas>
+        <div class="hero-greeting">Hello, ${esc(firstName)}.</div>
+        <div class="hero-date">${dateStr}</div>
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:6px">V3</div>
+        <div class="hero-scroll-hint">
+          <span>Scroll</span>
+          <div class="hero-scroll-arrow"></div>
+        </div>`;
+      document.body.appendChild(hero);
+
+      let dismissed = false;
+      const dismissHero = () => {
+        if (dismissed) return;
+        dismissed = true;
+        hero.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+        hero.style.opacity = '0';
+        hero.style.transform = 'translateY(-100%)';
+        setTimeout(() => { hero.remove(); }, 850);
+        window.removeEventListener('scroll', onDismiss);
+        window.removeEventListener('wheel', onDismiss);
+        hero.removeEventListener('click', onDismiss);
+      };
+      const onDismiss = () => dismissHero();
+      window.addEventListener('scroll', onDismiss, { passive: true });
+      window.addEventListener('wheel', onDismiss, { passive: true });
+      hero.addEventListener('click', onDismiss);
+
+      const cvs = document.getElementById('hero-particles');
+      if (cvs) {
+        const ctx = cvs.getContext('2d');
+        let raf;
+        const dpr = window.devicePixelRatio || 1;
+        const resize = () => {
+          cvs.width = cvs.offsetWidth * dpr;
+          cvs.height = cvs.offsetHeight * dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        const W = () => cvs.offsetWidth;
+        const H = () => cvs.offsetHeight;
+
+        const COUNT = 600;
+        const DURATION = 4860;
+        const startTime = performance.now();
+        const cx = W() / 2, cy = H() / 2;
+        const cornerDist = Math.sqrt(cx * cx + cy * cy);
+        const particles = [];
+        for (let i = 0; i < COUNT; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const sx = cx + (Math.random() - 0.5) * 16;
+          const sy = cy + (Math.random() - 0.5) * 16;
+          const absC = Math.abs(Math.cos(angle));
+          const absS = Math.abs(Math.sin(angle));
+          const edgeDist = absC < 0.001 ? cy : absS < 0.001 ? cx : Math.min(cx / absC, cy / absS);
+
+          if (i < 300) {
+            const finalDist = edgeDist * (0.92 + Math.random() * 0.08);
+            const overshoot = edgeDist * (1.15 + Math.random() * 0.35);
+            const perpAngle = angle + Math.PI / 2;
+            const curve = (Math.random() - 0.5) * edgeDist * 0.4;
+            particles.push({
+              startX: sx, startY: sy,
+              cpX: cx + Math.cos(angle) * overshoot + Math.cos(perpAngle) * curve,
+              cpY: cy + Math.sin(angle) * overshoot + Math.sin(perpAngle) * curve,
+              endX: cx + Math.cos(angle) * finalDist,
+              endY: cy + Math.sin(angle) * finalDist,
+              x: 0, y: 0, edge: true,
+              size: 0.8 + Math.random() * 2,
+              targetAlpha: 0.4 + Math.random() * 0.5,
+              b1: 180 + Math.floor(Math.random() * 75),
+              g1: 120 + Math.floor(Math.random() * 60),
+            });
+          } else {
+            const dist = cornerDist * (1.1 + Math.random() * 0.6);
+            particles.push({
+              startX: sx, startY: sy,
+              endX: cx + Math.cos(angle) * dist,
+              endY: cy + Math.sin(angle) * dist,
+              x: 0, y: 0, edge: false,
+              size: 0.8 + Math.random() * 2,
+              targetAlpha: 0.4 + Math.random() * 0.5,
+              b1: 180 + Math.floor(Math.random() * 75),
+              g1: 120 + Math.floor(Math.random() * 60),
+            });
+          }
+        }
+
+        function draw(now) {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / DURATION, 1);
+          const ease = 1 - Math.pow(1 - t, 4);
+          const fadeIn = Math.min(elapsed / 200, 1);
+          ctx.clearRect(0, 0, W(), H());
+          for (const p of particles) {
+            if (p.edge) {
+              const inv = 1 - ease;
+              p.x = inv * inv * p.startX + 2 * inv * ease * p.cpX + ease * ease * p.endX;
+              p.y = inv * inv * p.startY + 2 * inv * ease * p.cpY + ease * ease * p.endY;
+            } else {
+              p.x = p.startX + (p.endX - p.startX) * ease;
+              p.y = p.startY + (p.endY - p.startY) * ease;
+            }
+            ctx.globalAlpha = p.targetAlpha * fadeIn;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgb(60,${p.g1},${p.b1})`;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          if (t < 1) raf = requestAnimationFrame(draw);
+          else raf = null;
+        }
+        raf = requestAnimationFrame(draw);
+        cvs._stopParticles = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+      }
+    }
     function renderClassAnalytics() {
       if (!MOCK.submissions.length) return '';
 
@@ -5007,152 +5134,7 @@ ${contentText.slice(0, 6000)}`
         </div>`;
       }).join('') : '<p class="muted" style="text-align:center;padding:20px 0">No submissions yet.</p>';
 
-      // Show hero animation only on first home visit per app session
-      if (!_heroShownThisSession) {
-        _heroShownThisSession = true;
-        setTimeout(() => {
-          document.querySelector('.hero-section')?.remove();
-          // Create hero overlay
-          const hero = document.createElement('div');
-          hero.className = 'hero-section';
-          hero.innerHTML = `
-          <canvas class="hero-canvas" id="hero-particles"></canvas>
-          <div class="hero-greeting">Hello, ${esc(firstName)}.</div>
-          <div class="hero-date">${dateStr}</div>
-          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:6px">V2</div>
-          <div class="hero-scroll-hint">
-            <span>Scroll</span>
-            <div class="hero-scroll-arrow"></div>
-          </div>`;
-          document.body.appendChild(hero);
-
-          // Scroll, wheel, or click to dismiss hero — slides up while fading
-          let dismissed = false;
-          const dismissHero = () => {
-            if (dismissed) return;
-            dismissed = true;
-            hero.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-            hero.style.opacity = '0';
-            hero.style.transform = 'translateY(-100%)';
-            setTimeout(() => { hero.remove(); }, 850);
-            window.removeEventListener('scroll', onDismiss);
-            window.removeEventListener('wheel', onDismiss);
-            hero.removeEventListener('click', onDismiss);
-          };
-          const onDismiss = () => dismissHero();
-          window.addEventListener('scroll', onDismiss, { passive: true });
-          window.addEventListener('wheel', onDismiss, { passive: true });
-          hero.addEventListener('click', onDismiss);
-          hero._cleanup = () => { dismissHero(); };
-
-          // ── Scattering blue particles ──
-          const cvs = document.getElementById('hero-particles');
-          if (cvs) {
-            const ctx = cvs.getContext('2d');
-            let raf;
-            const dpr = window.devicePixelRatio || 1;
-            const resize = () => {
-              cvs.width = cvs.offsetWidth * dpr;
-              cvs.height = cvs.offsetHeight * dpr;
-              ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            };
-            resize();
-            window.addEventListener('resize', resize);
-            const W = () => cvs.offsetWidth;
-            const H = () => cvs.offsetHeight;
-
-            const COUNT = 600;
-            const DURATION = 4860;
-            const startTime = performance.now();
-            const cx = W() / 2, cy = H() / 2;
-            // Distance from center to the farthest corner
-            const cornerDist = Math.sqrt(cx * cx + cy * cy);
-            const particles = [];
-            for (let i = 0; i < COUNT; i++) {
-              const angle = Math.random() * Math.PI * 2;
-              const sx = cx + (Math.random() - 0.5) * 16;
-              const sy = cy + (Math.random() - 0.5) * 16;
-              const absC = Math.abs(Math.cos(angle));
-              const absS = Math.abs(Math.sin(angle));
-              const edgeDist = absC < 0.001 ? cy : absS < 0.001 ? cx : Math.min(cx / absC, cy / absS);
-
-              if (i < 300) {
-                // Edge particles: overshoot past the edge, then settle back
-                const finalDist = edgeDist * (0.92 + Math.random() * 0.08);
-                const overshoot = edgeDist * (1.15 + Math.random() * 0.35);
-                // Random perpendicular curve offset for organic paths
-                const perpAngle = angle + Math.PI / 2;
-                const curve = (Math.random() - 0.5) * edgeDist * 0.4;
-                particles.push({
-                  startX: sx, startY: sy,
-                  // Control point (overshoot + curve)
-                  cpX: cx + Math.cos(angle) * overshoot + Math.cos(perpAngle) * curve,
-                  cpY: cy + Math.sin(angle) * overshoot + Math.sin(perpAngle) * curve,
-                  endX: cx + Math.cos(angle) * finalDist,
-                  endY: cy + Math.sin(angle) * finalDist,
-                  x: 0, y: 0,
-                  edge: true,
-                  size: 0.8 + Math.random() * 2,
-                  targetAlpha: 0.4 + Math.random() * 0.5,
-                  b1: 180 + Math.floor(Math.random() * 75),
-                  g1: 120 + Math.floor(Math.random() * 60),
-                });
-              } else {
-                // Off-screen particles: straight line, fly away
-                const dist = cornerDist * (1.1 + Math.random() * 0.6);
-                particles.push({
-                  startX: sx, startY: sy,
-                  endX: cx + Math.cos(angle) * dist,
-                  endY: cy + Math.sin(angle) * dist,
-                  x: 0, y: 0,
-                  edge: false,
-                  size: 0.8 + Math.random() * 2,
-                  targetAlpha: 0.4 + Math.random() * 0.5,
-                  b1: 180 + Math.floor(Math.random() * 75),
-                  g1: 120 + Math.floor(Math.random() * 60),
-                });
-              }
-            }
-
-            function draw(now) {
-              const elapsed = now - startTime;
-              const t = Math.min(elapsed / DURATION, 1); // 0 → 1 over 3s
-              // Ease-out quart: fast burst that settles smoothly
-              const ease = 1 - Math.pow(1 - t, 4);
-              // Fade in over first 200ms
-              const fadeIn = Math.min(elapsed / 200, 1);
-
-              ctx.clearRect(0, 0, W(), H());
-              for (const p of particles) {
-                if (p.edge) {
-                  // Quadratic bezier: start → overshoot control point → settle at edge
-                  const inv = 1 - ease;
-                  p.x = inv * inv * p.startX + 2 * inv * ease * p.cpX + ease * ease * p.endX;
-                  p.y = inv * inv * p.startY + 2 * inv * ease * p.cpY + ease * ease * p.endY;
-                } else {
-                  // Linear for off-screen particles
-                  p.x = p.startX + (p.endX - p.startX) * ease;
-                  p.y = p.startY + (p.endY - p.startY) * ease;
-                }
-
-                ctx.globalAlpha = p.targetAlpha * fadeIn;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgb(60,${p.g1},${p.b1})`;
-                ctx.fill();
-              }
-              ctx.globalAlpha = 1;
-              if (t < 1) {
-                raf = requestAnimationFrame(draw);
-              } else {
-                raf = null;
-              }
-            }
-            raf = requestAnimationFrame(draw);
-            cvs._stopParticles = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-          }
-        }, 30);
-      } // end heroShownThisSession check
+      // Hero is now launched from bootApp() so it's not affected by re-renders
 
       return `
     <!-- Below the fold -->
@@ -8116,6 +8098,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       } else {
         recomputeFlags();
         document.getElementById('app-layout').style.display = '';
+        showHeroWelcome();
         render();
         startFirebaseStream();
       }
