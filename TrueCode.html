@@ -4722,14 +4722,7 @@ ${contentText.slice(0, 6000)}`
     function render() {
       updateThemeBtn();
       const main = document.getElementById('main');
-      // Clean up hero overlay if present
-      const _hs = document.querySelector('.hero-section');
-      if (_hs) {
-        const _hc = document.getElementById('hero-particles');
-        if (_hc && _hc._stopParticles) _hc._stopParticles();
-        if (_hs._cleanup) _hs._cleanup();
-        _hs.remove();
-      }
+      // Leave hero overlay alone if it's still showing — it dismisses itself on scroll/click
       // Show/hide reset demo nav link based on mode
       const resetBtn = document.getElementById('nav-reset-demo');
       if (resetBtn) resetBtn.style.display = isDemoMode ? '' : 'none';
