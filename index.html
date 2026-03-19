@@ -711,6 +711,43 @@
       color: #fff;
     }
 
+    .undo-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      animation: slideUp 0.25s ease;
+    }
+    .undo-toast button {
+      background: none;
+      border: 1px solid #6366f1;
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .undo-toast button:hover {
+      background: #6366f1;
+      color: #fff;
+    }
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+
     .editable {
       cursor: pointer;
       border-bottom: 1px dashed rgba(99,102,241,0.3);
@@ -4863,6 +4900,94 @@ ${contentText.slice(0, 6000)}`
 
     // ── Home page ─────────────────────────────────────────────
     let _heroShownThisSession = false;
+    function renderClassAnalytics() {
+      if (!MOCK.submissions.length) return '';
+
+      // Average concept level per assignment (in order)
+      const assignOrder = MOCK.assignments.slice().sort((a, b) => a.id - b.id);
+      const avgLevels = assignOrder.map(a => {
+        const subs = MOCK.submissions.filter(s => s.assignment_id === a.id);
+        if (!subs.length) return { title: a.title, avg: 0, count: 0 };
+        const levels = subs.map(s => detectConcepts(s.code).maxLevel);
+        return { title: a.title, avg: levels.reduce((x, y) => x + y, 0) / levels.length, count: subs.length };
+      }).filter(x => x.count > 0);
+
+      // Most flagged assignments
+      const flagCounts = {};
+      for (const f of activeFlags) {
+        const sub = getSubmission(f.submission_id);
+        if (sub) flagCounts[sub.assignment_id] = (flagCounts[sub.assignment_id] || 0) + 1;
+      }
+      const topFlagged = Object.entries(flagCounts)
+        .map(([aid, count]) => ({ assign: getAssignment(Number(aid)), count }))
+        .filter(x => x.assign)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+
+      // Student distribution by auto rating
+      const ratingDist = [0, 0, 0, 0, 0]; // 1-5 stars
+      for (const s of MOCK.students) {
+        const ar = computeAutoRating(s.id);
+        if (ar.stars >= 1 && ar.stars <= 5) ratingDist[ar.stars - 1]++;
+      }
+      const maxRating = Math.max(...ratingDist, 1);
+
+      // Concept level trend chart (bar chart)
+      const maxAvg = Math.max(...avgLevels.map(x => x.avg), 1);
+      const trendBars = avgLevels.map(x => {
+        const h = Math.round((x.avg / 5) * 60);
+        const colors = { 1: '#9ca3af', 2: '#3b82f6', 3: '#22c55e', 4: '#f59e0b', 5: '#8b5cf6' };
+        const lvl = Math.round(x.avg);
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:28px;max-width:60px" title="${x.title}: Avg level ${x.avg.toFixed(1)}">
+          <div style="font-size:9px;color:#6b7280">${x.avg.toFixed(1)}</div>
+          <div style="width:100%;height:${h}px;background:${colors[lvl] || '#3b82f6'};border-radius:4px 4px 0 0;min-height:4px"></div>
+          <div style="font-size:8px;color:#9ca3af;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${esc(x.title.length > 8 ? x.title.slice(0, 7) + '…' : x.title)}</div>
+        </div>`;
+      }).join('');
+
+      // Rating distribution bars
+      const ratingLabels = ['Needs support', 'Developing', 'On track', 'Strong', 'Exceptional'];
+      const ratingColors = ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6'];
+      const ratingBars = ratingDist.map((count, i) => {
+        const w = Math.round((count / maxRating) * 100);
+        return `<div style="display:flex;align-items:center;gap:8px;font-size:11px">
+          <span style="min-width:14px;color:#f59e0b">${'★'.repeat(i + 1)}</span>
+          <div style="flex:1;height:10px;background:var(--bg-card-hover);border-radius:5px;overflow:hidden">
+            <div style="width:${w}%;height:100%;background:${ratingColors[i]};border-radius:5px"></div>
+          </div>
+          <span style="min-width:20px;text-align:right;color:#6b7280">${count}</span>
+        </div>`;
+      }).join('');
+
+      return `
+      <div class="home-section">
+        <h2>Class Analytics</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">Concept Level Over Time</div>
+            <div style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:8px">
+              ${trendBars || '<span class="muted" style="font-size:12px">No data yet</span>'}
+            </div>
+            <div class="muted" style="font-size:10px;margin-top:6px">Average concept level per assignment (1-5) →</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">Student Distribution</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              ${ratingBars}
+            </div>
+          </div>
+          ${topFlagged.length ? `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">Most Flagged Assignments</div>
+            ${topFlagged.map((x, i) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;${i ? 'border-top:1px solid var(--border);' : ''}">
+              <span style="font-size:20px;font-weight:700;color:#f59e0b;min-width:24px">${i + 1}</span>
+              <span style="flex:1;font-size:13px;font-weight:500">${esc(x.assign.title)}</span>
+              <span class="badge badge-count">${x.count} flag${x.count !== 1 ? 's' : ''}</span>
+            </div>`).join('')}
+          </div>` : ''}
+        </div>
+      </div>`;
+    }
+
     function renderHome() {
       const today = new Date();
       const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -5066,6 +5191,8 @@ ${contentText.slice(0, 6000)}`
           <div class="home-stat-label">Items to Review</div>
         </div>
       </div>
+
+      ${renderClassAnalytics()}
 
       <div class="home-section">
         <h2>Recent Activity</h2>
@@ -5699,7 +5826,13 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 
     // ── Students page ─────────────────────────────────────────
     function renderStudents() {
-      return `<h1>Students</h1>${MOCK.students.map(s => {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <h1 style="margin-bottom:0">Students</h1>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-outline" style="font-size:12px" onclick="bulkAddStudents()">Paste List</button>
+    <button class="btn btn-primary" style="font-size:12px" onclick="openAddStudent()">+ Add Student</button>
+  </div>
+</div>${MOCK.students.map(s => {
         const allFlags = MOCK.submissions.filter(sub => sub.student_id === s.id).flatMap(sub => flagsForSub(sub.id));
         const ar = computeAutoRating(s.id);
         const stars = ar.stars > 0 ? [...Array(5)].map((_, i) => `<span style="color:#f59e0b;opacity:${i < ar.stars ? '1' : '.25'}">★</span>`).join('') : '—';
@@ -6426,8 +6559,22 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     function toggleSub(id) { expandedSub = expandedSub === id ? null : id; render(); }
     function dismissFlag(id) {
       const f = activeFlags.find(f => f.id === id);
-      if (f) dismissedSigs.add(flagSig(f));
-      activeFlags = activeFlags.filter(f => f.id !== id);
+      if (!f) return;
+      const sig = flagSig(f);
+      dismissedSigs.add(sig);
+      activeFlags = activeFlags.filter(x => x.id !== id);
+      saveState();
+      render();
+      // Show undo toast for 5 seconds
+      const toast = document.createElement('div');
+      toast.className = 'undo-toast';
+      toast.innerHTML = `<span>Flag dismissed</span><button onclick="undoDismiss('${sig}');this.parentElement.remove()">Undo</button>`;
+      document.body.appendChild(toast);
+      setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
+    }
+    function undoDismiss(sig) {
+      dismissedSigs.delete(sig);
+      recomputeFlags();
       saveState();
       render();
     }
@@ -6443,6 +6590,68 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       s.password = val;
       saveState();
       if (classCode) fbRegisterCode(classCode); // push updated password to Firebase immediately
+    }
+
+    // ── Data export ────────────────────────────────────────
+    function exportDataCSV() {
+      let csv = 'Student,Assignment,Type,Lines,Submitted,Code\n';
+      for (const sub of MOCK.submissions) {
+        const s = getStudent(sub.student_id);
+        const a = getAssignment(sub.assignment_id);
+        const code = (sub.code || '').replace(/"/g, '""');
+        csv += `"${s?.name ?? 'Unknown'}","${a?.title ?? ''}","${a?.assignment_type ?? ''}",${sub.line_count},"${sub.submitted_at}","${code}"\n`;
+      }
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'truecode_export.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function exportFlagsCSV() {
+      let csv = 'Student,Assignment,Check,Confidence,Reason\n';
+      for (const f of activeFlags) {
+        const sub = getSubmission(f.submission_id);
+        const s = sub ? getStudent(sub.student_id) : null;
+        const a = sub ? getAssignment(sub.assignment_id) : null;
+        const reason = (f.reason_text || '').replace(/"/g, '""');
+        csv += `"${s?.name ?? ''}","${a?.title ?? ''}","${f.check_type}","${f.confidence}","${reason}"\n`;
+      }
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'truecode_flags.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function exportAllJSON() {
+      const data = { students: MOCK.students, assignments: MOCK.assignments, submissions: MOCK.submissions, curricula: MOCK.curricula, flags: activeFlags };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'truecode_backup.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Bulk student import ──────────────────────────────────
+    function bulkAddStudents() {
+      const val = prompt('Paste student names (one per line, or comma-separated):');
+      if (!val) return;
+      const names = val.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+      if (!names.length) return;
+      const existing = new Set(MOCK.students.map(s => s.name.toLowerCase()));
+      let added = 0;
+      for (const name of names) {
+        if (existing.has(name.toLowerCase())) continue;
+        const id = MOCK.students.length ? Math.max(...MOCK.students.map(s => s.id)) + 1 : 1;
+        MOCK.students.push({ id, name, class_id: 1, effort_rating: 3, password: '' });
+        existing.add(name.toLowerCase());
+        added++;
+      }
+      if (added) {
+        saveState();
+        if (classCode) fbRegisterCode(classCode);
+        render();
+      }
+      alert(`Added ${added} student${added !== 1 ? 's' : ''}${names.length - added > 0 ? ` (${names.length - added} already existed)` : ''}.`);
     }
 
     // ── Inline editing helpers ──────────────────────────────
@@ -7675,6 +7884,17 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         </div>
       </div>
       ` : ''}
+
+      <!-- Export Data -->
+      <div style="background:#fff;border:1px solid #e2e6ec;border-radius:12px;padding:20px 24px;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">Export Data</div>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Download your data as CSV or JSON backup.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="exportDataCSV()">Submissions CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="exportFlagsCSV()">Flags CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="exportAllJSON()">Full Backup (JSON)</button>
+        </div>
+      </div>
 
       <!-- Delete Account -->
       <div style="border-top:1px solid #e2e6ec;margin-top:32px;padding-top:24px">
