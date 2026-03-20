@@ -2391,9 +2391,18 @@
     };
 
     const _conceptCache = new Map();
+    function _normalizeForCache(code) {
+      return code.split('\n').map(l => l.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n');
+    }
     function detectConcepts(code) {
       if (!code) return { concepts: [], maxLevel: 0 };
-      if (_conceptCache.has(code)) return _conceptCache.get(code);
+      const cacheKey = _normalizeForCache(code);
+      if (_conceptCache.has(cacheKey)) return _conceptCache.get(cacheKey);
+      // LRU eviction: drop oldest 100 entries when cache exceeds 500
+      if (_conceptCache.size > 500) {
+        const keys = [..._conceptCache.keys()];
+        for (let i = 0; i < 100; i++) _conceptCache.delete(keys[i]);
+      }
       const c = new Set();
       // ── Level 1 ────────────────────────────────────────────
       if (/print\s*\(/.test(code)) c.add('print');
@@ -2455,7 +2464,7 @@
       let maxLv = 1;
       for (const cc of c) if ((CONCEPT_LEVEL[cc] || 1) > maxLv) maxLv = CONCEPT_LEVEL[cc] || 1;
       const result = { concepts: [...c], maxLevel: maxLv };
-      _conceptCache.set(code, result);
+      _conceptCache.set(cacheKey, result);
       return result;
     }
 
@@ -3190,7 +3199,9 @@ ${contentText.slice(0, 6000)}`
 
     // Build cumulative set of all terms taught up to (and including) a given assignment.
     // If "print" was taught in Assignment 1's curriculum, it's known for Assignment 5 too.
+    const _cumulativeTermsCache = new Map();
     function getCumulativeKnownTerms(assignmentId) {
+      if (_cumulativeTermsCache.has(assignmentId)) return _cumulativeTermsCache.get(assignmentId);
       const known = new Set();
       // Find all curricula linked to this assignment or any earlier assignment
       for (const curr of MOCK.curricula) {
@@ -3201,6 +3212,7 @@ ${contentText.slice(0, 6000)}`
           for (const t of curr.terms) known.add(t.trim().toLowerCase());
         }
       }
+      _cumulativeTermsCache.set(assignmentId, known);
       return known;
     }
 
@@ -4500,26 +4512,82 @@ ${contentText.slice(0, 6000)}`
       if (looksLikeDemo) localStorage.setItem('tc_demo_mode', '1');
     }
 
+    // ── Implicit starter code detection ────────────────────────
+    const _implicitStarterCache = new Map();
+    function detectImplicitStarter(assignmentId) {
+      if (_implicitStarterCache.has(assignmentId)) return _implicitStarterCache.get(assignmentId);
+      const subs = MOCK.submissions.filter(s => s.assignment_id === assignmentId && s.code?.trim());
+      if (subs.length < 5) { _implicitStarterCache.set(assignmentId, new Set()); return new Set(); }
+      const threshold = Math.floor(subs.length * 0.7);
+      const commonLines = new Set();
+      // Check first 20 line positions for shared lines
+      for (let pos = 0; pos < 20; pos++) {
+        const lineCounts = {};
+        for (const s of subs) {
+          const line = (s.code.split('\n')[pos] || '').trim();
+          if (line) lineCounts[line] = (lineCounts[line] || 0) + 1;
+        }
+        for (const [line, count] of Object.entries(lineCounts)) {
+          if (count >= threshold) commonLines.add(line);
+        }
+      }
+      _implicitStarterCache.set(assignmentId, commonLines);
+      return commonLines;
+    }
+
+    // ── Quick fingerprint for similarity pre-check ──────────
+    const _fingerprintCache = new Map();
+    function quickFingerprint(code) {
+      if (_fingerprintCache.has(code)) return _fingerprintCache.get(code);
+      const tokens = tokenizePython(code);
+      const types = new Set(tokens.map(t => t.replace(/^\d+:/, ''))); // strip depth prefix
+      _fingerprintCache.set(code, types);
+      if (_fingerprintCache.size > 1000) {
+        const keys = [..._fingerprintCache.keys()];
+        for (let i = 0; i < 200; i++) _fingerprintCache.delete(keys[i]);
+      }
+      return types;
+    }
+    function fingerprintOverlap(fpA, fpB) {
+      let inter = 0;
+      for (const t of fpA) if (fpB.has(t)) inter++;
+      const union = fpA.size + fpB.size - inter;
+      return union > 0 ? inter / union : 0;
+    }
+
     // ── Build flags from submissions ──────────────────────────
     function computeFlags() {
       const flags = [];
       let fid = 1;
 
       // ── Similarity flags (structural + variable names) ───────────
+      _implicitStarterCache.clear();
+      _fingerprintCache.clear();
       const subsByAssign = {};
       for (const s of MOCK.submissions) {
         (subsByAssign[s.assignment_id] = subsByAssign[s.assignment_id] || []).push(s);
       }
-      for (const [, subs] of Object.entries(subsByAssign)) {
+      for (const [assignId, subs] of Object.entries(subsByAssign)) {
+        const assign = getAssignment(Number(assignId));
+        const implicitStarter = detectImplicitStarter(Number(assignId));
         for (let i = 0; i < subs.length; i++) {
           for (let j = i + 1; j < subs.length; j++) {
             const a = subs[i], b = subs[j];
             // Skip group project members — sharing code is intentional
             if (a.group_id && b.group_id && a.group_id === b.group_id) continue;
+            // Bloom filter pre-check: skip if fingerprints are very different
+            const fpA = quickFingerprint(a.code || ''), fpB = quickFingerprint(b.code || '');
+            if (fingerprintOverlap(fpA, fpB) < 0.3) continue;
             const avg = (a.line_count + b.line_count) / 2;
-            const assign = getAssignment(a.assignment_id);
             const thr = simThreshold(avg, assign?.assignment_type);
-            const result = combinedSimilarity(stripStarterCode(a.code, assign), stripStarterCode(b.code, assign));
+            // Strip both explicit starter code and auto-detected implicit starter
+            let codeA = stripStarterCode(a.code, assign);
+            let codeB = stripStarterCode(b.code, assign);
+            if (implicitStarter.size > 0) {
+              codeA = codeA.split('\n').filter(l => !implicitStarter.has(l.trim())).join('\n');
+              codeB = codeB.split('\n').filter(l => !implicitStarter.has(l.trim())).join('\n');
+            }
+            const result = combinedSimilarity(codeA, codeB);
             if (result.score >= thr) {
               const conf = result.score >= thr + 0.15 ? 'high' : result.score >= thr + 0.05 ? 'moderate' : 'low';
               const [p, q] = a.id <= b.id ? [a, b] : [b, a];
@@ -4530,6 +4598,43 @@ ${contentText.slice(0, 6000)}`
                 : `${nameP} and ${nameQ}'s submissions share ${Math.round(result.score * 100)}% of variable and function names (threshold: ${Math.round(thr * 100)}%). Worth a closer look.`;
               flags.push({ id: fid++, submission_id: p.id, check_type: 'similarity', confidence: conf, reason_text: reason, related_submission_id: q.id, created_at: assign?.created_at ?? '' });
             }
+          }
+        }
+      }
+
+      // ── Cross-assignment similarity flags ───────────────────────
+      // Detect when a student's code on one assignment is suspiciously similar
+      // to a DIFFERENT student's code on a DIFFERENT assignment.
+      const allSubs = MOCK.submissions.filter(s => s.code && s.line_count >= 10);
+      for (let i = 0; i < allSubs.length; i++) {
+        for (let j = i + 1; j < allSubs.length; j++) {
+          const a = allSubs[i], b = allSubs[j];
+          // Only cross-assignment (same-assignment is already handled above)
+          if (a.assignment_id === b.assignment_id) continue;
+          // Only different students (self-reuse across assignments is fine)
+          if (a.student_id === b.student_id) continue;
+          // Skip if both assignments are structured and share the same curriculum
+          const assignA = getAssignment(a.assignment_id), assignB = getAssignment(b.assignment_id);
+          if (assignA?.assignment_type === 'structured' && assignB?.assignment_type === 'structured') {
+            const currA = MOCK.curricula.filter(c => c.assignment_ids?.includes(a.assignment_id));
+            const currB = MOCK.curricula.filter(c => c.assignment_ids?.includes(b.assignment_id));
+            const sharedCurr = currA.some(ca => currB.some(cb => ca.id === cb.id));
+            if (sharedCurr) continue;
+          }
+          // Bloom filter pre-check
+          const fpA = quickFingerprint(a.code), fpB = quickFingerprint(b.code);
+          if (fingerprintOverlap(fpA, fpB) < 0.5) continue;
+          // Higher threshold for cross-assignment (90%)
+          const result = combinedSimilarity(a.code, b.code);
+          if (result.score >= 0.90) {
+            const conf = result.score >= 0.97 ? 'high' : result.score >= 0.93 ? 'moderate' : 'low';
+            const [p, q] = a.id <= b.id ? [a, b] : [b, a];
+            const stP = getStudent(p.student_id), stQ = getStudent(q.student_id);
+            const asgP = getAssignment(p.assignment_id), asgQ = getAssignment(q.assignment_id);
+            const nameP = stP?.name ?? 'Unknown', nameQ = stQ?.name ?? 'Unknown';
+            const titleP = asgP?.title ?? 'Unknown', titleQ = asgQ?.title ?? 'Unknown';
+            const reason = `${nameP}'s submission on "${titleP}" is ${Math.round(result.score * 100)}% similar to ${nameQ}'s submission on "${titleQ}" — suspicious similarity across different assignments.`;
+            flags.push({ id: fid++, submission_id: p.id, check_type: 'cross_similarity', confidence: conf, reason_text: reason, related_submission_id: q.id, created_at: '' });
           }
         }
       }
@@ -4593,6 +4698,9 @@ ${contentText.slice(0, 6000)}`
     let ALL_FLAGS; try { ALL_FLAGS = computeFlags(); } catch (e) { console.error('computeFlags error:', e); ALL_FLAGS = []; }
 
     function recomputeFlags() {
+      _cumulativeTermsCache.clear();
+      _implicitStarterCache.clear();
+      _fingerprintCache.clear();
       try { ALL_FLAGS = computeFlags(); } catch (e) { console.error('computeFlags error:', e); ALL_FLAGS = []; }
       activeFlags = ALL_FLAGS.filter(f => !dismissedSigs.has(flagSig(f)));
     }
@@ -4937,7 +5045,7 @@ ${contentText.slice(0, 6000)}`
     function subsForAssign(aid) { return MOCK.submissions.filter(s => s.assignment_id === aid); }
     function subsForStudent(sid) { return MOCK.submissions.filter(s => s.student_id === sid); }
     const TYPE_LABELS = { structured: 'Structured', semi_open: 'Semi-open', creative: 'Creative' };
-    const CHECK_LABELS = { advancement: 'Unusual advancement', similarity: 'Code similarity detected', ai_pattern: 'May be AI-assisted', style_inconsistency: 'Style inconsistency' };
+    const CHECK_LABELS = { advancement: 'Unusual advancement', similarity: 'Code similarity detected', cross_similarity: 'Cross-assignment similarity', ai_pattern: 'May be AI-assisted', style_inconsistency: 'Style inconsistency' };
 
     // ══════════════════════════════════════════════════════════
     //  RENDERING
