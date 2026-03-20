@@ -3755,6 +3755,164 @@ ${contentText.slice(0, 6000)}`
         }
       }
 
+      // n) Comment-to-code semantic mismatch — AI writes "tutorial-style" comments
+      // where every block is preceded by a perfectly descriptive comment explaining
+      // exactly what the next line does, like a textbook walkthrough.
+      {
+        const codeLines = code.split('\n');
+        let tutorialComments = 0;
+        let totalComments = 0;
+        for (let li = 0; li < codeLines.length - 1; li++) {
+          const trimmed = codeLines[li].trim();
+          if (!trimmed.startsWith('#') || trimmed === '#') continue;
+          totalComments++;
+          const commentText = trimmed.slice(1).trim().toLowerCase();
+          const nextLine = codeLines[li + 1]?.trim() || '';
+          if (!nextLine || nextLine.startsWith('#')) continue;
+          // Check if comment narrates the next line (tutorial pattern)
+          const narrates =
+            // Comment says "do X" and next line does X
+            (commentText.match(/^(create|define|set|initialize|declare|make|build|store|assign|calculate|compute|get|find|check|validate|convert|print|display|output|return|loop|iterate|read|open|write|call|run|sort|append|add|remove|update|increment|decrement)\b/) && nextLine.length > 0) ||
+            // Comment describes a variable and next line assigns it
+            (/^(the |a |an |this )/.test(commentText) && /^\w+\s*=/.test(nextLine)) ||
+            // Comment says "if X" and next line is an if statement
+            (/^(if |check |when |whether )/.test(commentText) && /^(if |elif )/.test(nextLine)) ||
+            // Comment says "for each" and next line is a for loop
+            (/^(for |for each|loop |iterate )/.test(commentText) && /^for /.test(nextLine));
+          if (narrates) tutorialComments++;
+        }
+        // Flag if most comments are tutorial-style narration
+        if (totalComments >= 3 && tutorialComments >= 2 && tutorialComments / totalComments >= 0.5) {
+          const pts = aiLevel <= 2 ? 15 : aiLevel <= 3 ? 10 : 7;
+          score += pts;
+          signals.push(`${tutorialComments} of ${totalComments} comments narrate the next line in tutorial style — a strong AI writing pattern`);
+        }
+      }
+
+      // o) Polished error messages — AI writes grammatically perfect, user-friendly
+      // error messages. Students write "wrong input" or just "error".
+      {
+        const printMatches = code.match(/(?:print|raise\s+\w+)\s*\(\s*(['"`])(.*?)\1/g) || [];
+        let polishedCount = 0;
+        for (const m of printMatches) {
+          const msgMatch = m.match(/(['"`])(.*?)\1/);
+          if (!msgMatch) continue;
+          const msg = msgMatch[2];
+          // Polished indicators: starts with capital, ends with period/!, has 5+ words, proper grammar
+          const words = msg.trim().split(/\s+/);
+          const startsCapital = /^[A-Z]/.test(msg);
+          const endsWithPunct = /[.!]$/.test(msg.trim());
+          const hasPlease = /please/i.test(msg);
+          const isLong = words.length >= 5;
+          const hasProperGrammar = startsCapital && endsWithPunct && isLong;
+          if (hasProperGrammar || hasPlease) polishedCount++;
+        }
+        if (polishedCount >= 2) {
+          const pts = aiLevel <= 2 ? 12 : aiLevel <= 3 ? 8 : 5;
+          score += pts;
+          signals.push(`${polishedCount} polished, grammatically perfect error messages — students typically write terse messages like "error" or "try again"`);
+        }
+      }
+
+      // p) Code structure uniformity — AI produces functions with very consistent
+      // lengths and structure. Students write messy, variable-length functions.
+      {
+        const funcBodies = [];
+        const funcRegex = /^(\s*)def\s+\w+/gm;
+        const allLines = code.split('\n');
+        let match;
+        while ((match = funcRegex.exec(code)) !== null) {
+          const defLineIdx = code.slice(0, match.index).split('\n').length - 1;
+          const defIndent = match[1].length;
+          let bodyLines = 0;
+          for (let li = defLineIdx + 1; li < allLines.length; li++) {
+            const line = allLines[li];
+            if (!line.trim()) { bodyLines++; continue; }
+            const indent = line.match(/^(\s*)/)[1].length;
+            if (indent <= defIndent) break;
+            bodyLines++;
+          }
+          if (bodyLines > 0) funcBodies.push(bodyLines);
+        }
+        if (funcBodies.length >= 3) {
+          const avg = funcBodies.reduce((a, b) => a + b, 0) / funcBodies.length;
+          const variance = funcBodies.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / funcBodies.length;
+          const stdDev = Math.sqrt(variance);
+          const cv = avg > 0 ? stdDev / avg : 0; // coefficient of variation
+          // Very low variation across 3+ functions = suspicious uniformity
+          if (cv < 0.25 && avg >= 3) {
+            const pts = aiLevel <= 2 ? 12 : aiLevel <= 3 ? 8 : 5;
+            score += pts;
+            signals.push(`${funcBodies.length} functions with unusually uniform lengths (avg ${avg.toFixed(0)} lines, CV ${(cv * 100).toFixed(0)}%) — AI tends to produce evenly structured functions`);
+          }
+        }
+      }
+
+      // q) PEP 8 import ordering — AI follows stdlib → third-party → local,
+      // alphabetized. Students import wherever they remember to.
+      {
+        const importLines = code.split('\n')
+          .map((l, i) => ({ line: l.trim(), idx: i }))
+          .filter(({ line }) => /^(import |from \S+ import )/.test(line));
+        if (importLines.length >= 3) {
+          // Check if imports are all at the top (before any non-import, non-comment, non-blank line)
+          let allAtTop = true;
+          let lastImportIdx = -1;
+          for (const { idx } of importLines) {
+            if (idx > lastImportIdx) lastImportIdx = idx;
+          }
+          const linesBetween = code.split('\n').slice(0, lastImportIdx + 1);
+          for (let li = 0; li < linesBetween.length; li++) {
+            const t = linesBetween[li].trim();
+            if (!t || t.startsWith('#') || t.startsWith('import ') || t.startsWith('from ')) continue;
+            // Non-import line found before last import — imports scattered
+            if (li < lastImportIdx) { allAtTop = false; break; }
+          }
+          // Check alphabetical ordering
+          const importNames = importLines.map(({ line }) => {
+            const m = line.match(/^(?:import|from)\s+(\S+)/);
+            return m ? m[1].toLowerCase() : '';
+          });
+          let isAlphabetical = true;
+          for (let i = 1; i < importNames.length; i++) {
+            if (importNames[i] < importNames[i - 1]) { isAlphabetical = false; break; }
+          }
+          if (allAtTop && isAlphabetical) {
+            const pts = aiLevel <= 2 ? 10 : aiLevel <= 3 ? 6 : 3;
+            score += pts;
+            signals.push(`${importLines.length} imports are perfectly grouped at top and alphabetically ordered — follows PEP 8 convention students rarely follow`);
+          }
+        }
+      }
+
+      // r) Vocabulary diversity — AI uses a broader range of Python built-ins
+      // than students typically know in short code.
+      {
+        const builtins = new Set(['abs','all','any','bin','bool','chr','dict','dir','divmod','enumerate',
+          'eval','exec','filter','float','format','frozenset','getattr','globals','hasattr','hash','hex',
+          'id','input','int','isinstance','issubclass','iter','len','list','locals','map','max','min',
+          'next','object','oct','open','ord','pow','print','range','repr','reversed','round','set',
+          'setattr','slice','sorted','str','sum','super','tuple','type','vars','zip']);
+        const usedBuiltins = new Set();
+        for (const b of builtins) {
+          if (new RegExp('\\b' + b + '\\s*\\(').test(code)) usedBuiltins.add(b);
+        }
+        // Remove extremely common ones that even beginners use
+        const common = new Set(['print', 'input', 'int', 'str', 'float', 'len', 'range', 'list']);
+        const uncommon = [...usedBuiltins].filter(b => !common.has(b));
+        const codeLineCount = code.split('\n').filter(l => l.trim() && !l.trim().startsWith('#')).length;
+        // High diversity of uncommon builtins relative to code size
+        if (uncommon.length >= 4 && codeLineCount <= 40) {
+          const pts = aiLevel <= 2 ? 12 : aiLevel <= 3 ? 8 : 5;
+          score += pts;
+          signals.push(`Uses ${uncommon.length} uncommon built-in functions (${uncommon.slice(0, 4).join(', ')}${uncommon.length > 4 ? '…' : ''}) in just ${codeLineCount} lines — unusually broad vocabulary`);
+        } else if (uncommon.length >= 6) {
+          const pts = aiLevel <= 2 ? 10 : aiLevel <= 3 ? 6 : 4;
+          score += pts;
+          signals.push(`Uses ${uncommon.length} uncommon built-in functions — broader vocabulary than typical for student code`);
+        }
+      }
+
       // k) Combination bonus — when multiple mild signals appear together,
       // the combination is itself very suspicious. A student might have ONE of these
       // by chance, but having 3+ is a strong AI pattern.
@@ -3834,7 +3992,32 @@ ${contentText.slice(0, 6000)}`
       // Has docstrings
       const hasDocstrings = /"""[\s\S]*?"""|'''[\s\S]*?'''/.test(code);
 
-      return { namingStyle, commentDensity, avgLineLen, funcCount, blankRatio, hasDocstrings };
+      // Average variable name length
+      const varNames = [...getAssignedNames(code)];
+      const avgVarNameLen = varNames.length > 0
+        ? varNames.reduce((s, v) => s + v.length, 0) / varNames.length : 0;
+
+      // Ratio of single-letter variables
+      const singleLetterRatio = varNames.length > 0
+        ? varNames.filter(v => v.length === 1).length / varNames.length : 0;
+
+      // Indentation consistency score (0-1, 1 = perfectly consistent)
+      const indentedLines = lines.filter(l => /^\s+/.test(l));
+      let indentConsistency = 0;
+      if (indentedLines.length >= 2) {
+        const indents = indentedLines.map(l => l.match(/^(\s*)/)[1].length);
+        const allMod4 = indents.every(i => i % 4 === 0);
+        const allMod2 = indents.every(i => i % 2 === 0);
+        indentConsistency = allMod4 ? 1.0 : allMod2 ? 0.7 : 0.3;
+      }
+
+      // Comment language complexity (avg words per comment)
+      const commentTexts = lines.filter(l => /^\s*#/.test(l)).map(l => l.trim().slice(1).trim());
+      const avgCommentWords = commentTexts.length > 0
+        ? commentTexts.reduce((s, c) => s + c.split(/\s+/).filter(w => w).length, 0) / commentTexts.length : 0;
+
+      return { namingStyle, commentDensity, avgLineLen, funcCount, blankRatio, hasDocstrings,
+               avgVarNameLen, singleLetterRatio, indentConsistency, avgCommentWords };
     }
 
     function detectStyleInconsistency(studentId, currentSub) {
@@ -3891,6 +4074,46 @@ ${contentText.slice(0, 6000)}`
       if (currentFP.hasDocstrings && !pastHadDocstrings) {
         score += 15;
         signals.push('Docstrings appear for the first time — not present in any prior submission');
+      }
+
+      // f) Variable name length jump (12 pts)
+      const pastAvgVarLen = pastFPs.filter(fp => fp.avgVarNameLen > 0);
+      if (pastAvgVarLen.length >= 2 && currentFP.avgVarNameLen > 0) {
+        const avgPastVarLen = pastAvgVarLen.reduce((s, fp) => s + fp.avgVarNameLen, 0) / pastAvgVarLen.length;
+        if (currentFP.avgVarNameLen > avgPastVarLen + 4) {
+          score += 12;
+          signals.push(`Variable names suddenly much longer (avg ${currentFP.avgVarNameLen.toFixed(1)} chars vs usual ${avgPastVarLen.toFixed(1)} chars)`);
+        }
+      }
+
+      // g) Single-letter variable ratio drop (10 pts)
+      const pastSingleLetter = pastFPs.filter(fp => fp.singleLetterRatio > 0);
+      if (pastSingleLetter.length >= 2) {
+        const avgPastSingle = pastSingleLetter.reduce((s, fp) => s + fp.singleLetterRatio, 0) / pastSingleLetter.length;
+        if (avgPastSingle >= 0.2 && currentFP.singleLetterRatio < 0.05) {
+          score += 10;
+          signals.push(`No single-letter variables — past submissions used them ${Math.round(avgPastSingle * 100)}% of the time`);
+        }
+      }
+
+      // h) Indentation consistency jump (10 pts)
+      const pastIndent = pastFPs.filter(fp => fp.indentConsistency > 0);
+      if (pastIndent.length >= 2) {
+        const avgPastIndent = pastIndent.reduce((s, fp) => s + fp.indentConsistency, 0) / pastIndent.length;
+        if (currentFP.indentConsistency >= 1.0 && avgPastIndent < 0.6) {
+          score += 10;
+          signals.push(`Perfect 4-space indentation throughout — past submissions had inconsistent indentation`);
+        }
+      }
+
+      // i) Comment complexity jump (10 pts)
+      const pastCommentWords = pastFPs.filter(fp => fp.avgCommentWords > 0);
+      if (pastCommentWords.length >= 2 && currentFP.avgCommentWords > 0) {
+        const avgPastCW = pastCommentWords.reduce((s, fp) => s + fp.avgCommentWords, 0) / pastCommentWords.length;
+        if (currentFP.avgCommentWords > avgPastCW + 3) {
+          score += 10;
+          signals.push(`Comments suddenly much more detailed (avg ${currentFP.avgCommentWords.toFixed(1)} words vs usual ${avgPastCW.toFixed(1)} words)`);
+        }
       }
 
       if (score < 30 || signals.length < 2) return null;
