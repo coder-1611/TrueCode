@@ -4373,6 +4373,7 @@ ${contentText.slice(0, 6000)}`
         setupDone: !!localStorage.getItem(getSetupKey()),
         isDemoMode: localStorage.getItem('tc_demo_mode') === '1',
         classCode: classCode || '',
+        requirePasswords: requirePasswords,
         codehsProxy: codehsProxyUrl || '',
         updatedAt: new Date().toISOString()
       };
@@ -4419,6 +4420,7 @@ ${contentText.slice(0, 6000)}`
         if (data.isDemoMode) localStorage.setItem('tc_demo_mode', '1');
         else localStorage.removeItem('tc_demo_mode');
         if (data.classCode) { classCode = data.classCode; localStorage.setItem('tc_class_code', data.classCode); }
+        if (data.requirePasswords !== undefined) { requirePasswords = data.requirePasswords; localStorage.setItem('tc_require_passwords', requirePasswords ? '1' : '0'); }
         if (data.codehsProxy) { codehsProxyUrl = data.codehsProxy; localStorage.setItem('codehsProxy', data.codehsProxy); }
         // Also update localStorage cache so loadState() stays in sync
         try {
@@ -4746,6 +4748,7 @@ ${contentText.slice(0, 6000)}`
     // ── Firebase / Student submission state ───────────────────
     const FIREBASE_URL = 'https://truecodestudentend-df823-default-rtdb.firebaseio.com';
     let classCode = localStorage.getItem('tc_class_code') || '';
+    let requirePasswords = localStorage.getItem('tc_require_passwords') !== '0'; // default true
     let pendingList = [];       // fetched from Firebase
     let pendingLoading = false;
     let pendingError = '';
@@ -4791,7 +4794,8 @@ ${contentText.slice(0, 6000)}`
           active: true,
           students: MOCK.students.map(s => s.name),
           assignments: MOCK.assignments.map(a => a.title),
-          passwords: hashedPasswords
+          passwords: hashedPasswords,
+          requirePasswords: requirePasswords
         })
       });
       // If clearUnfinished is true, wipe all unfinished data so portal shows no assignments
@@ -4829,6 +4833,14 @@ ${contentText.slice(0, 6000)}`
     }
 
     // Save class code — deletes the old Firebase entry if the code changed, then registers the new one
+    function toggleRequirePasswords(val) {
+      requirePasswords = val;
+      localStorage.setItem('tc_require_passwords', val ? '1' : '0');
+      if (classCode) fbRegisterCode(classCode);
+      _debouncedFirebaseSave();
+      render();
+    }
+
     async function saveClassCode() {
       const newCc = classCode.trim();
       if (!newCc) return;
@@ -6180,9 +6192,13 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     <div style="flex:1;min-width:220px">${renderAutoRating(student.id)}</div>
     <div style="display:flex;flex-direction:column;gap:6px;min-width:200px">
       <div class="effort-label">Submission Password</div>
+      ${requirePasswords ? `
       <input class="form-input" style="max-width:200px" placeholder="Required — set a password"
         value="${esc(student.password || '')}" oninput="setPassword(${student.id},this.value)"/>
       <p class="muted" style="font-size:11px">Students must enter this to submit. Save class code again to push update.</p>
+      ` : `
+      <p class="muted" style="font-size:11px;color:#9ca3af">Passwords are turned off. Enable them in Class Code Settings on the Pending page.</p>
+      `}
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="stat-block">
@@ -6794,6 +6810,14 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
           <button class="btn btn-primary" onclick="saveClassCode()">Save</button>
         </div>
         <p class="muted" style="margin-top:8px;font-size:12px">Share this code with your students. They enter it on the Student Portal page to send you their code.</p>
+        <hr style="border:none;border-top:1px solid #f3f4f6;margin:16px 0"/>
+        <div style="margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0">
+            <input type="checkbox" ${requirePasswords ? 'checked' : ''} onchange="toggleRequirePasswords(this.checked)" style="width:auto;margin:0"/>
+            <span style="font-size:13px;font-weight:500;color:#374151">Require student passwords</span>
+          </label>
+          <p class="muted" style="font-size:12px;margin-top:4px">${requirePasswords ? 'Students must enter their password to submit code.' : 'Passwords are off — students can submit without a password. Good for testing or simplicity.'}</p>
+        </div>
         <hr style="border:none;border-top:1px solid #f3f4f6;margin:16px 0"/>
         <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Deactivate an old class code</p>
         <p class="muted" style="font-size:12px;margin-bottom:10px">If a previous code is still working, enter it here to permanently remove it from the system.</p>

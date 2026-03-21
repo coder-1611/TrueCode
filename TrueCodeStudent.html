@@ -374,11 +374,14 @@
     async function continueFromIdentity() {
       error = '';
       if (!studentName) { error = 'Select your name from the list.'; render(); return; }
-      if (!password.trim()) { error = 'Enter your password.'; render(); return; }
-      const expected = classData?.passwords?.[studentName];
-      if (!expected) { error = 'No password set for your account — ask your teacher.'; render(); return; }
-      const hashedPw = await hashPassword(password);
-      if (hashedPw !== expected) { error = 'Incorrect password. Ask your teacher if you forgot it.'; render(); return; }
+      const pwRequired = classData?.requirePasswords !== false;
+      if (pwRequired) {
+        if (!password.trim()) { error = 'Enter your password.'; render(); return; }
+        const expected = classData?.passwords?.[studentName];
+        if (!expected) { error = 'No password set for your account — ask your teacher.'; render(); return; }
+        const hashedPw = await hashPassword(password);
+        if (hashedPw !== expected) { error = 'Incorrect password. Ask your teacher if you forgot it.'; render(); return; }
+      }
 
       // Validate group members if group submission
       if (isGroup) {
@@ -387,11 +390,13 @@
           const gm = groupMembers[i];
           if (!gm.name) { error = `Select a name for Member ${i + 2}.`; render(); return; }
           if (gm.name === studentName) { error = `Member ${i + 2} cannot be the same as you.`; render(); return; }
-          if (!gm.password.trim()) { error = `Enter the password for ${gm.name}.`; render(); return; }
-          const gmExpected = classData?.passwords?.[gm.name];
-          if (!gmExpected) { error = `No password set for ${gm.name} — ask your teacher.`; render(); return; }
-          const gmHashed = await hashPassword(gm.password);
-          if (gmHashed !== gmExpected) { error = `Incorrect password for ${gm.name}.`; render(); return; }
+          if (pwRequired) {
+            if (!gm.password.trim()) { error = `Enter the password for ${gm.name}.`; render(); return; }
+            const gmExpected = classData?.passwords?.[gm.name];
+            if (!gmExpected) { error = `No password set for ${gm.name} — ask your teacher.`; render(); return; }
+            const gmHashed = await hashPassword(gm.password);
+            if (gmHashed !== gmExpected) { error = `Incorrect password for ${gm.name}.`; render(); return; }
+          }
         }
         // Check for duplicate group members
         const names = groupMembers.map(g => g.name);
@@ -574,12 +579,12 @@
               <label>Name <span class="required">*</span></label>
               ${memberNameField}
             </div>
-            <div>
+            ${classData?.requirePasswords !== false ? `<div>
               <label>Password <span class="required">*</span></label>
               <input type="password" placeholder="Their password"
                 value="${esc(gm.password)}"
                 oninput="groupMembers[${i}].password=this.value;error=''"/>
-            </div>
+            </div>` : ''}
           </div>`;
         }).join('') : '';
 
@@ -588,19 +593,19 @@
           <div class="page-header">
             ${stepDots('identity')}
             <h1>Who Are You?</h1>
-            <p class="sub">Select your name and enter the password your teacher gave you.</p>
+            <p class="sub">${classData?.requirePasswords !== false ? 'Select your name and enter the password your teacher gave you.' : 'Select your name to continue.'}</p>
           </div>
           <div>
             <label>Your Name <span class="required">*</span></label>
             ${nameField}
           </div>
-          <div>
+          ${classData?.requirePasswords !== false ? `<div>
             <label>Password <span class="required">*</span></label>
             <input type="password" placeholder="Password your teacher gave you"
               value="${esc(password)}"
               oninput="password=this.value;error=''"
               onkeydown="if(event.key==='Enter'&&!isGroup)continueFromIdentity()"/>
-          </div>
+          </div>` : ''}
           <hr class="divider"/>
           <div>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
