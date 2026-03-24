@@ -4575,6 +4575,8 @@ ${contentText.slice(0, 6000)}`
         for (let i = 0; i < subs.length; i++) {
           for (let j = i + 1; j < subs.length; j++) {
             const a = subs[i], b = subs[j];
+            // Skip same student (e.g. resubmission for same assignment)
+            if (a.student_id === b.student_id) continue;
             // Skip group project members — sharing code is intentional
             if (a.group_id && b.group_id && a.group_id === b.group_id) continue;
             // Bloom filter pre-check: skip if fingerprints are very different
@@ -7102,6 +7104,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       const others = MOCK.submissions.filter(s =>
         s.assignment_id === newSub.assignment_id &&
         s.id !== newSub.id &&
+        s.student_id !== newSub.student_id &&
         !(newSub.group_id && s.group_id && newSub.group_id === s.group_id)
       );
       for (const other of others) {
