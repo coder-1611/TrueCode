@@ -2224,6 +2224,97 @@
     .home-below-fold {
       padding-top: 20px;
     }
+
+    /* ── Tutorial overlay ──────────────────────────────────── */
+    .tut-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: tut-fade-in .25s ease;
+    }
+    @keyframes tut-fade-in { from { opacity: 0 } to { opacity: 1 } }
+    .tut-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 36px 32px 28px;
+      max-width: 520px;
+      width: 92%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: tut-slide-up .3s ease;
+    }
+    @keyframes tut-slide-up { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+    .tut-step-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0d9488;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .tut-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0;
+    }
+    .tut-body {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #4b5563;
+    }
+    .tut-body strong { color: #1a1a2e }
+    .tut-dots {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      padding: 4px 0;
+    }
+    .tut-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #e2e6ec;
+      transition: background .2s;
+    }
+    .tut-dot.active { background: #0d9488 }
+    .tut-dot.done { background: #6ee7b7 }
+    .tut-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+    .tut-btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .tut-btn:hover { transform: scale(1.03) }
+    .tut-btn-skip {
+      background: transparent;
+      color: #9ca3af;
+    }
+    .tut-btn-skip:hover { color: #6b7280 }
+    .tut-btn-next {
+      background: #0d9488;
+      color: #fff;
+    }
+    .tut-btn-next:hover { background: #0f766e }
+    [data-theme="dark"] .tut-card { background: #1e1e2e; }
+    [data-theme="dark"] .tut-title { color: #cdd6f4 }
+    [data-theme="dark"] .tut-body { color: #a6adc8 }
+    [data-theme="dark"] .tut-body strong { color: #cdd6f4 }
+    [data-theme="dark"] .tut-dot { background: #45475a }
+    [data-theme="dark"] .tut-dot.done { background: #a6e3a1 }
   </style>
 </head>
 
@@ -2325,7 +2416,8 @@
       <div style="flex:1"></div>
       <a class="nav-link" id="nav-reset-demo" style="display:none;font-size:11px;color:#585b70;margin-top:4px"
         onclick="resetToDemo()">Reset demo</a>
-      <a class="nav-link" onclick="toggleTheme()" style="font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer"
+      <a class="nav-link" onclick="startTutorial()" style="font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer">&#63;&#xFE0E; Help</a>
+      <a class="nav-link" onclick="toggleTheme()" style="font-size:12px;color:#94a3b8;margin-top:0;cursor:pointer"
         id="theme-toggle">&#9790; Dark</a>
       <a class="nav-link" onclick="showPage('account')" style="font-size:12px;color:#94a3b8;margin-top:2px">&#9881;
         Account</a>
@@ -7792,6 +7884,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       document.getElementById('app-layout').style.display = '';
       showHeroWelcome();
       render();
+      _triggerTutorialAfterHero();
       // Clear all unfinished assignments for demo students so portal shows nothing
       if (classCode) fbClearAllUnfinished(classCode);
     }
@@ -7834,6 +7927,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       recomputeFlags();
       showHeroWelcome();
       render();
+      _triggerTutorialAfterHero();
     }
 
     // ── Login system ────────────────────────────────────────
@@ -8435,6 +8529,146 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       location.reload();
     }
 
+    // ══════════════════════════════════════════════════════════
+    //  TUTORIAL OVERLAY
+    // ══════════════════════════════════════════════════════════
+    const TUTORIAL_STEPS = [
+      {
+        page: 'home',
+        title: 'Welcome to TrueCode',
+        body: `This is your <strong>Home</strong> page — a quick overview of your class. You'll see submission stats, recent flags, and shortcuts to common actions.<br><br>Let's walk through the main pages so you know where everything is.`
+      },
+      {
+        page: 'flags',
+        title: 'Flags',
+        body: `This page shows every <strong>flag</strong> TrueCode has raised across all submissions. Each flag is a soft nudge — not an accusation.<br><br>You'll see the <strong>confidence level</strong> (low, moderate, high), a plain-English reason, and buttons to dismiss or investigate further.`
+      },
+      {
+        page: 'grid',
+        title: 'The Grid',
+        body: `The <strong>Grid</strong> is a student-by-assignment matrix. Each cell shows whether a student has submitted, and any flags on that submission.<br><br>Click any cell to jump straight to the code and its flags.`
+      },
+      {
+        page: 'assignments',
+        title: 'Assignments',
+        body: `Create and manage assignments here. For each assignment, you can set the <strong>type</strong> (structured, semi-open, or creative) — this controls how sensitive similarity detection is.<br><br>Paste the assignment directions so TrueCode can understand what level of code to expect.`
+      },
+      {
+        page: 'students',
+        title: 'Students',
+        body: `Your student roster lives here. Click any student to see their full submission history, concept progression, and open flags.<br><br>You can set an <strong>effort rating</strong> (1–5) for each student — this fine-tunes how flags are generated for them.`
+      },
+      {
+        page: 'curriculum',
+        title: 'Curriculum',
+        body: `Optionally, add <strong>curriculum units</strong> with expected Python terms (e.g., Unit 1: <code>print</code>, <code>input</code>). This helps the advancement check understand what students should know at each stage of your course.`
+      },
+      {
+        page: 'upload',
+        title: 'Upload',
+        body: `Import code submissions in bulk by pasting <strong>CodeHS sandbox links</strong>, one per line. TrueCode extracts the code and student names, matches them to your roster, and creates submissions automatically.`
+      },
+      {
+        page: 'pending',
+        title: 'Pending & Class Code',
+        body: `This is where you set your <strong>class code</strong> — the code students enter on the Student Portal to submit their work. Submissions arrive here in real time.<br><br>You can also toggle <strong>student passwords</strong> on or off, and deactivate old class codes.`
+      },
+      {
+        page: null,
+        title: 'You\'re all set!',
+        body: `That's the full tour. You can re-open this walkthrough any time by clicking <strong>? Help</strong> in the sidebar.<br><br>Start by adding students, creating an assignment, and sharing your class code. TrueCode handles the rest.`
+      }
+    ];
+
+    let _tutStep = 0;
+    let _tutActive = false;
+
+    function startTutorial() {
+      _tutStep = 0;
+      _tutActive = true;
+      _applyTutStep();
+    }
+
+    function _applyTutStep() {
+      const step = TUTORIAL_STEPS[_tutStep];
+      if (step.page) {
+        activePage = step.page;
+        render();
+      }
+      _renderTutorial();
+    }
+
+    function tutNext() {
+      if (_tutStep < TUTORIAL_STEPS.length - 1) {
+        _tutStep++;
+        _applyTutStep();
+      } else {
+        endTutorial();
+      }
+    }
+
+    function tutPrev() {
+      if (_tutStep > 0) {
+        _tutStep--;
+        _applyTutStep();
+      }
+    }
+
+    function endTutorial() {
+      _tutActive = false;
+      const el = document.getElementById('tut-root');
+      if (el) el.remove();
+      localStorage.setItem(userKey('tc_tutorial_done'), '1');
+    }
+
+    function _triggerTutorialAfterHero() {
+      const heroEl = document.getElementById('hero-welcome');
+      if (heroEl) {
+        const obs = new MutationObserver(() => {
+          if (!document.getElementById('hero-welcome')) {
+            obs.disconnect();
+            setTimeout(startTutorial, 400);
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      } else {
+        setTimeout(startTutorial, 400);
+      }
+    }
+
+    function _renderTutorial() {
+      let el = document.getElementById('tut-root');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'tut-root';
+        document.body.appendChild(el);
+      }
+      const step = TUTORIAL_STEPS[_tutStep];
+      const total = TUTORIAL_STEPS.length;
+      const isLast = _tutStep === total - 1;
+      const isFirst = _tutStep === 0;
+
+      const dots = TUTORIAL_STEPS.map((_, i) => {
+        const cls = i < _tutStep ? 'tut-dot done' : i === _tutStep ? 'tut-dot active' : 'tut-dot';
+        return `<div class="${cls}"></div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="tut-backdrop" onclick="if(event.target===this)return">
+          <div class="tut-card">
+            <div class="tut-step-badge">Step ${_tutStep + 1} of ${total}</div>
+            <h2 class="tut-title">${step.title}</h2>
+            <div class="tut-body">${step.body}</div>
+            <div class="tut-dots">${dots}</div>
+            <div class="tut-actions">
+              <button class="tut-btn tut-btn-skip" onclick="endTutorial()">Skip tour</button>
+              ${!isFirst ? `<button class="tut-btn tut-btn-skip" onclick="tutPrev()" style="color:#6b7280">← Back</button>` : ''}
+              <button class="tut-btn tut-btn-next" onclick="tutNext()">${isLast ? 'Done' : 'Next →'}</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
     async function bootApp() {
       // Never show setup if not logged in — login screen takes priority
       if (!isLoggedIn()) {
@@ -8481,6 +8715,10 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         showHeroWelcome();
         render();
         startFirebaseStream();
+        // Show tutorial on first-ever login (after hero dismisses)
+        if (!localStorage.getItem(userKey('tc_tutorial_done'))) {
+          _triggerTutorialAfterHero();
+        }
       }
     }
 
