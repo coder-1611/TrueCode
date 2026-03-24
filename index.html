@@ -4989,6 +4989,17 @@ ${contentText.slice(0, 6000)}`
           assign = { id: aid, title: item.assignmentName || 'Untitled', assignment_type: 'structured', directions_text: '', created_at: item.submittedAt, ai_level: null, model_code: null };
           MOCK.assignments.push(assign);
         }
+        // Deduplicate: skip if this exact submission already exists (same student, assignment, date, code)
+        const isDupe = MOCK.submissions.some(s =>
+          s.student_id === student.id &&
+          s.assignment_id === assign.id &&
+          s.submitted_at === item.submittedAt &&
+          s.code === (item.code || '')
+        );
+        if (isDupe) {
+          try { await fbDelete(classCode, item._key); } catch (_) { }
+          continue;
+        }
         const newId = Math.max(0, ...MOCK.submissions.map(s => s.id)) + 1;
         const newSub = { id: newId, student_id: student.id, assignment_id: assign.id, code: item.code || '', line_count: (item.code || '').split('\n').length, submitted_at: item.submittedAt };
         MOCK.submissions.push(newSub);
