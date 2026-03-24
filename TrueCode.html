@@ -4922,7 +4922,13 @@ ${contentText.slice(0, 6000)}`
     }
 
     async function fbDelete(cc, key) {
-      await fetch(`${FIREBASE_URL}/submissions/${cc.trim()}/${key}.json`, { method: 'DELETE' });
+      const url = `${FIREBASE_URL}/submissions/${cc.trim()}/${key}.json`;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await fetch(url, { method: 'DELETE' });
+        if (res.ok) return;
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+      throw new Error(`Failed to delete submission ${key} after 3 attempts`);
     }
 
     async function loadPending() {
@@ -4981,7 +4987,6 @@ ${contentText.slice(0, 6000)}`
       let count = 0;
       for (const item of items) {
         if (_importedKeys.has(item._key)) continue;
-        _importedKeys.add(item._key);
         const student = findOrCreateStudent(item.studentName, 3);
         let assign = MOCK.assignments.find(a => a.title.toLowerCase() === (item.assignmentName || '').toLowerCase());
         if (!assign) {
@@ -4996,16 +5001,20 @@ ${contentText.slice(0, 6000)}`
           s.submitted_at === item.submittedAt &&
           s.code === (item.code || '')
         );
-        if (isDupe) {
-          try { await fbDelete(classCode, item._key); } catch (_) { }
+        // Delete from Firebase first — only mark as imported if delete succeeds
+        try {
+          await fbDelete(classCode, item._key);
+          _importedKeys.add(item._key);
+        } catch (_) {
+          // Delete failed after retries — don't mark as imported so it retries next time
           continue;
         }
+        if (isDupe) continue;
         const newId = Math.max(0, ...MOCK.submissions.map(s => s.id)) + 1;
         const newSub = { id: newId, student_id: student.id, assignment_id: assign.id, code: item.code || '', line_count: (item.code || '').split('\n').length, submitted_at: item.submittedAt };
         MOCK.submissions.push(newSub);
         const newFlags = computeFlagsForSub(newSub).filter(f => !dismissedSigs.has(flagSig(f)));
         activeFlags.push(...newFlags);
-        try { await fbDelete(classCode, item._key); } catch (_) { }
         count++;
       }
       if (count > 0) {
