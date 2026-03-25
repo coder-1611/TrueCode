@@ -2420,6 +2420,7 @@
       <a class="nav-link" onclick="showPage('curriculum')">&#9733;&#xFE0E; Curriculum</a>
       <a class="nav-link" onclick="showPage('upload')">&#8682;&#xFE0E; Upload</a>
       <a class="nav-link" onclick="showPage('pending')">&#8987;&#xFE0E; Pending</a>
+      <a class="nav-link" onclick="showPage('how-it-works')">&#9881;&#xFE0E; How It Works</a>
       <div style="flex:1"></div>
       <a class="nav-link" id="nav-reset-demo" style="display:none;font-size:11px;color:#585b70;margin-top:4px"
         onclick="resetToDemo()">Reset demo</a>
@@ -5191,7 +5192,7 @@ ${contentText.slice(0, 6000)}`
       const resetBtn = document.getElementById('nav-reset-demo');
       if (resetBtn) resetBtn.style.display = isDemoMode ? '' : 'none';
       document.querySelectorAll('.nav-link').forEach((el, i) => {
-        el.classList.toggle('active', ['home', 'flags', 'grid', 'assignments', 'students', 'curriculum', 'upload', 'pending'][i] === activePage ||
+        el.classList.toggle('active', ['home', 'flags', 'grid', 'assignments', 'students', 'curriculum', 'upload', 'pending', 'how-it-works'][i] === activePage ||
           (activePage === 'assignment-detail' && i === 3) || (activePage === 'student-detail' && i === 4) || (activePage === 'curriculum-detail' && i === 5));
       });
       if (activePage === 'home') main.innerHTML = renderHome();
@@ -5206,6 +5207,7 @@ ${contentText.slice(0, 6000)}`
       else if (activePage === 'upload') main.innerHTML = renderUpload();
       else if (activePage === 'pending') main.innerHTML = renderPending();
       else if (activePage === 'account') main.innerHTML = renderAccount();
+      else if (activePage === 'how-it-works') main.innerHTML = renderHowItWorks();
       else main.innerHTML = `<p class="muted" style="padding:40px;text-align:center">Page not found. <a href="#" onclick="showPage('home');return false">Go to Home</a></p>`;
 
       document.querySelectorAll('.overlay,.modal-overlay,.sync-toast').forEach(el => el.remove());
@@ -6918,6 +6920,122 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       <p style="font-size:11px;color:#9ca3af;margin-top:8px">Highlighted lines share similar code structure (loops, conditions, function calls in the same pattern).</p>
     </div>
   </div>`;
+    }
+
+    // ── How It Works page ─────────────────────────────────────
+    function renderHowItWorks() {
+      const section = (title, content) => `
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;margin-bottom:16px">
+          <h3 style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">${title}</h3>
+          <div style="font-size:13px;line-height:1.8;color:#4b5563">${content}</div>
+        </div>`;
+
+      return `
+      <h1 style="margin-bottom:4px">How Detection Works</h1>
+      <p class="muted" style="margin-bottom:24px">TrueCode runs all checks locally in your browser. No student data is sent to any AI service. No API keys needed.</p>
+
+      ${section('Check 1 — Sudden Advancement', `
+        <p>Detects when a student's code suddenly uses Python concepts far beyond what the assignment requires <strong>and</strong> their own history.</p>
+        <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:12px">
+          <tr style="background:#f9fafb"><th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Step</th><th style="text-align:left;padding:8px;border:1px solid #e5e7eb">What happens</th></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb">1</td><td style="padding:8px;border:1px solid #e5e7eb">Scan the submission for Python concepts (keywords, patterns) and map each to a level (1–5)</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb">2</td><td style="padding:8px;border:1px solid #e5e7eb">Compare against the <strong>expected level</strong> of the assignment (from directions or manual setting)</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb">3</td><td style="padding:8px;border:1px solid #e5e7eb">Compare against the student's <strong>historical peak</strong> — highest concept level in all past submissions</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb">4</td><td style="padding:8px;border:1px solid #e5e7eb">If the gap is large enough, flag it. The threshold depends on the student's <strong>effort rating</strong></td></tr>
+        </table>
+        <p style="margin-top:8px"><strong>Effort rating effect:</strong> Students rated 1–2 flag at a gap of 2+ levels. Students rated 4–5 need a gap of 3+ levels (they're expected to go beyond).</p>
+        <p style="margin-top:8px"><strong>Concept levels:</strong> Level 1 = <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">print</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">input</code> · Level 2 = <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">if/else</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">for</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">def</code> · Level 3 = <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">list comprehension</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">dict</code> · Level 4 = <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">class</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">try/except</code> · Level 5 = <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">decorators</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:11px">generators</code></p>
+      `)}
+
+      ${section('Check 2 — Cross-Student Similarity', `
+        <p>Detects when two students submit structurally similar code — even if all variables are renamed.</p>
+        <p style="margin:12px 0"><strong>Two comparison methods (picks the higher score):</strong></p>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;background:#f9fafb;border-radius:8px;padding:14px">
+            <strong style="color:#1a1a2e;font-size:12px">Structural similarity</strong>
+            <p style="margin-top:6px;font-size:12px">Tokenizes both files into structural patterns (IF, FOR, DEF, CALL with nesting depth), then runs longest-common-subsequence comparison. Catches copying even with renamed variables.</p>
+          </div>
+          <div style="flex:1;min-width:200px;background:#f9fafb;border-radius:8px;padding:14px">
+            <strong style="color:#1a1a2e;font-size:12px">Variable name similarity</strong>
+            <p style="margin-top:6px;font-size:12px">Extracts all assigned variable and function names from both submissions and compares them as sets (Jaccard similarity). Catches lazy copying where structure changes but names don't.</p>
+          </div>
+        </div>
+        <p><strong>Threshold curve</strong> (scales with code length):</p>
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">
+          <tr style="background:#f9fafb"><th style="padding:6px 8px;border:1px solid #e5e7eb">Lines</th><th style="padding:6px 8px;border:1px solid #e5e7eb">~10</th><th style="padding:6px 8px;border:1px solid #e5e7eb">~25</th><th style="padding:6px 8px;border:1px solid #e5e7eb">~50</th><th style="padding:6px 8px;border:1px solid #e5e7eb">~100</th><th style="padding:6px 8px;border:1px solid #e5e7eb">200+</th></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb"><strong>Threshold</strong></td><td style="padding:6px 8px;border:1px solid #e5e7eb">98%</td><td style="padding:6px 8px;border:1px solid #e5e7eb">95%</td><td style="padding:6px 8px;border:1px solid #e5e7eb">92%</td><td style="padding:6px 8px;border:1px solid #e5e7eb">88%</td><td style="padding:6px 8px;border:1px solid #e5e7eb">83%</td></tr>
+        </table>
+        <p style="margin-top:8px"><strong>Assignment type matters:</strong> Structured = base thresholds · Semi-open = ~5% tighter · Creative = much tighter (~50–60%), since open-ended assignments have infinite valid solutions.</p>
+        <p style="margin-top:8px">Starter code (explicit or auto-detected from common lines) is stripped before comparison to avoid false positives.</p>
+      `)}
+
+      ${section('Check 3 — AI Pattern Detection', `
+        <p>Scans code for patterns commonly found in AI-generated submissions. Each heuristic contributes a weighted score; the total is passed through a sigmoid curve to produce a confidence level.</p>
+        <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:12px">
+          <tr style="background:#f9fafb"><th style="text-align:left;padding:6px 8px;border:1px solid #e5e7eb">Pattern</th><th style="text-align:left;padding:6px 8px;border:1px solid #e5e7eb">What it looks for</th></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Docstrings</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">"""..."""</code> in a beginner assignment</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Type hints</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">def foo(x: int) -> str</code></td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Main guard</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">if __name__ == "__main__"</code></td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Advanced imports</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">collections</code>, <code style="font-size:11px">functools</code>, <code style="font-size:11px">typing</code>, etc.</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Error handling</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">try/except</code> with specific exception types</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Constants</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">ALL_CAPS</code> variable names</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Tutorial comments</td><td style="padding:6px 8px;border:1px solid #e5e7eb">Comments that narrate the next line: <code style="font-size:11px"># Print the result</code></td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Polished error messages</td><td style="padding:6px 8px;border:1px solid #e5e7eb">Grammatically perfect <code style="font-size:11px">print()</code> / <code style="font-size:11px">raise</code> messages</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Function uniformity</td><td style="padding:6px 8px;border:1px solid #e5e7eb">All function bodies are nearly the same length (AI signature)</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">PEP 8 imports</td><td style="padding:6px 8px;border:1px solid #e5e7eb">Perfectly grouped and alphabetized import statements</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Vocabulary breadth</td><td style="padding:6px 8px;border:1px solid #e5e7eb">Unusually broad use of uncommon built-in functions</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Helper decomposition</td><td style="padding:6px 8px;border:1px solid #e5e7eb">Multiple <code style="font-size:11px">def</code> blocks in a simple assignment</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Defensive patterns</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">isinstance()</code>, <code style="font-size:11px">is None</code> guards</td></tr>
+          <tr><td style="padding:6px 8px;border:1px solid #e5e7eb">Pythonic idioms</td><td style="padding:6px 8px;border:1px solid #e5e7eb"><code style="font-size:11px">.join()</code>, <code style="font-size:11px">enumerate</code>, list comprehensions, <code style="font-size:11px">lambda</code></td></tr>
+        </table>
+        <p style="margin-top:8px">If 3+ patterns match, a <strong>combination bonus</strong> is added. The final score passes through a sigmoid curve — marginal hits stay low, but stacking many patterns accelerates toward high confidence.</p>
+      `)}
+
+      ${section('Style Inconsistency', `
+        <p>Compares a "fingerprint" of the current submission against the student's previous work. If their coding style suddenly changes, it flags.</p>
+        <p style="margin:12px 0"><strong>Fingerprint metrics:</strong></p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${['Average line length', 'Blank line ratio', 'Comment ratio', 'Avg variable name length', 'Single-letter variable ratio', 'Indentation consistency', 'Comment complexity'].map(m =>
+            `<span style="background:#f3f4f6;padding:4px 10px;border-radius:6px;font-size:12px">${m}</span>`
+          ).join('')}
+        </div>
+        <p>A sudden shift in several of these metrics (e.g., always using short variable names but this submission has long descriptive ones) suggests the code may not be the student's own work.</p>
+      `)}
+
+      ${section('Cross-Assignment Similarity', `
+        <p>In addition to checking within the same assignment, TrueCode also compares submissions <strong>across different assignments</strong> by different students.</p>
+        <p style="margin-top:8px">Uses a higher threshold (90%+) since different assignments naturally diverge. If Student A's code on Assignment 3 is 94% similar to Student B's code on Assignment 1, that's flagged.</p>
+        <p style="margin-top:8px">Skips comparison when both assignments are structured and share the same curriculum (high convergence expected).</p>
+      `)}
+
+      ${section('Code Highlighting', `
+        <p>When you view a submission's code, TrueCode highlights specific lines that triggered detection:</p>
+        <div style="background:#1e293b;border-radius:8px;padding:16px;margin:12px 0;font-family:'Fira Code',monospace;font-size:12px;line-height:1.8">
+          <span style="color:#e2e8f0">user_name = input("Enter your name: ")</span><br>
+          <span style="background:rgba(251,191,36,.2);color:#fde68a;border-bottom:2px solid rgba(251,191,36,.5);border-radius:2px">def display_greeting(name: str) -> None:</span> <span style="color:#6b7280;font-size:11px">← AI pattern (type hints)</span><br>
+          <span style="background:rgba(244,114,182,.2);color:#fbcfe8;border-bottom:2px solid rgba(244,114,182,.5);border-radius:2px">    # Print the greeting message</span> <span style="color:#6b7280;font-size:11px">← Tutorial-style comment</span><br>
+          <span style="color:#e2e8f0">    print(f"Hello, {name}!")</span><br>
+          <span style="background:rgba(34,197,94,.2);color:#86efac;border-bottom:2px solid rgba(34,197,94,.6);border-radius:2px">    result = sorted(items, key=lambda x: x.value)</span> <span style="color:#6b7280;font-size:11px">← Beyond curriculum</span>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px">
+          <span><span style="display:inline-block;width:14px;height:14px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);border-radius:3px;vertical-align:middle;margin-right:4px"></span> AI pattern</span>
+          <span><span style="display:inline-block;width:14px;height:14px;background:rgba(244,114,182,.2);border:1px solid rgba(244,114,182,.5);border-radius:3px;vertical-align:middle;margin-right:4px"></span> Tutorial-style comment</span>
+          <span><span style="display:inline-block;width:14px;height:14px;background:rgba(129,140,248,.2);border:1px solid rgba(129,140,248,.5);border-radius:3px;vertical-align:middle;margin-right:4px"></span> Aligned spacing</span>
+          <span><span style="display:inline-block;width:14px;height:14px;background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.6);border-radius:3px;vertical-align:middle;margin-right:4px"></span> Beyond curriculum</span>
+        </div>
+        <p style="margin-top:8px">Hover over any highlighted line to see exactly what was detected. Highlighting is <strong>curriculum-aware</strong> — if you've taught a concept in your curriculum, lines using it won't be highlighted.</p>
+      `)}
+
+      ${section('What TrueCode Does NOT Do', `
+        <ul style="margin:0;padding-left:20px">
+          <li style="margin-bottom:6px">Does <strong>not</strong> call any AI API (ChatGPT, Claude, Gemini, etc.) — all detection is local regex and math</li>
+          <li style="margin-bottom:6px">Does <strong>not</strong> send student code anywhere except your own Firebase database for syncing</li>
+          <li style="margin-bottom:6px">Does <strong>not</strong> make accusations — every flag is a soft nudge with a confidence level</li>
+          <li style="margin-bottom:6px">Does <strong>not</strong> keep dismissed flags — once you dismiss, it's permanently gone</li>
+          <li>The only AI interaction is the optional "Check with AI" side panel, where <strong>you</strong> copy a prompt into your own ChatGPT/Claude/Gemini account</li>
+        </ul>
+      `)}
+    `;
     }
 
     // ── Pending Submissions page ──────────────────────────────
