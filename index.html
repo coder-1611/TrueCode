@@ -2582,7 +2582,7 @@
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: `Write a short, correct Python solution for this student assignment. Use only the Python concepts the assignment naturally requires — do not add unnecessary complexity. Return ONLY the raw Python code with no markdown fences and no explanation.\n\nAssignment: ${directions}` }],
-            max_tokens: 400, temperature: 0.1
+            max_tokens: 2000, temperature: 0.1
           })
         });
       } catch (networkErr) {
@@ -7637,10 +7637,12 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     let assignStarterValue = '';
     let assignGdocUrl = '';
     let assignCodehsUrl = '';
-    function openAddAssign() { addAssignOpen = true; newAssignTitle = ''; newAssignType = 'structured'; newAssignDir = ''; assignDirMode = 'type'; assignDirFetchError = ''; starterCodeMode = 'type'; starterCodeFetchError = ''; starterCodeHSPasteFallback = false; assignDirValue = ''; assignStarterValue = ''; assignGdocUrl = ''; assignCodehsUrl = ''; render(); }
-    function closeAddAssign() { addAssignOpen = false; assignDirFetchError = ''; starterCodeFetchError = ''; assignDirValue = ''; assignStarterValue = ''; render(); }
+    function openAddAssign() { addAssignOpen = true; newAssignTitle = ''; newAssignType = 'structured'; newAssignDir = ''; assignDirMode = 'type'; assignDirFetchError = ''; starterCodeMode = 'type'; starterCodeFetchError = ''; starterCodeHSPasteFallback = false; assignDirValue = ''; assignStarterValue = ''; assignGdocUrl = ''; assignCodehsUrl = ''; modelCodeMode = 'none'; modelCodeValue = ''; modelCodehsUrl = ''; modelCodeFetchError = ''; modelCodeHSPasteFallback = false; render(); }
+    function closeAddAssign() { addAssignOpen = false; assignDirFetchError = ''; starterCodeFetchError = ''; assignDirValue = ''; assignStarterValue = ''; modelCodeValue = ''; modelCodeFetchError = ''; render(); }
 
     function _saveAssignFormState() {
+      const t = document.getElementById('new-assign-title');
+      if (t) newAssignTitle = t.value;
       const d = document.getElementById('new-assign-dir');
       if (d) assignDirValue = d.value;
       const s = document.getElementById('new-assign-starter');
@@ -7649,6 +7651,10 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       if (g) assignGdocUrl = g.value;
       const c = document.getElementById('new-assign-codehs-url');
       if (c) assignCodehsUrl = c.value;
+      const m = document.getElementById('new-assign-model');
+      if (m) modelCodeValue = m.value;
+      const mu = document.getElementById('new-assign-model-codehs-url');
+      if (mu) modelCodehsUrl = mu.value;
     }
 
     async function fetchAssignDirections() {
@@ -7670,6 +7676,12 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       }
       render();
     }
+
+    let modelCodeMode = 'none'; // none | type | codehs
+    let modelCodeValue = '';
+    let modelCodehsUrl = '';
+    let modelCodeFetchError = '';
+    let modelCodeHSPasteFallback = false;
 
     let starterCodeMode = 'type';
     let starterCodeFetchError = '';
@@ -7721,6 +7733,53 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       }
       render();
     }
+
+    async function fetchModelFromCodeHS() {
+      _saveAssignFormState();
+      const url = modelCodehsUrl.trim();
+      if (!url) { modelCodeFetchError = 'Paste a CodeHS sandbox URL.'; render(); return; }
+      if (!url.includes('codehs.com')) { modelCodeFetchError = 'That doesn\u2019t look like a CodeHS link.'; render(); return; }
+      modelCodeFetchError = '';
+      modelCodeHSPasteFallback = false;
+      const btn = document.getElementById('fetch-model-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Fetching\u2026'; }
+      try {
+        const { code } = await fetchCodeHSCode(url);
+        if (!code) throw new Error('No code found at that URL.');
+        modelCodeValue = code;
+        modelCodeFetchError = '';
+        modelCodeMode = 'type'; // switch to paste view so teacher sees fetched code
+      } catch (e) {
+        if (e.isProxyBlocked) {
+          modelCodeFetchError = 'Proxies blocked by your network. Open the CodeHS link, right-click → View Page Source, copy all, and paste below.';
+          modelCodeHSPasteFallback = true;
+        } else {
+          modelCodeFetchError = e.message || 'Failed to fetch from CodeHS.';
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Fetch'; }
+      }
+      render();
+    }
+
+    function parseModelFromPaste() {
+      _saveAssignFormState();
+      const ta = document.getElementById('model-codehs-paste');
+      const html = (ta?.value || '').trim();
+      if (!html) { modelCodeFetchError = 'Paste the page source first.'; render(); return; }
+      try {
+        const { code } = parseCodeHSHtml(html);
+        if (!code) throw new Error('No code found in pasted source.');
+        modelCodeValue = code;
+        modelCodeFetchError = '';
+        modelCodeHSPasteFallback = false;
+        modelCodeMode = 'type';
+      } catch (e) {
+        modelCodeFetchError = 'Could not extract code: ' + e.message;
+      }
+      render();
+    }
+
     async function saveNewAssign() {
       const title = (document.getElementById('new-assign-title')?.value || '').trim();
       if (!title) return;
@@ -7733,9 +7792,14 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       let ai_level = null;
       let model_code = null;
 
-      // Creative assignments don't get a model —
-      // expected level is derived from the student's own effort rating instead.
-      if (dir && type !== 'creative') {
+      // Use teacher-provided model code if available
+      const manualModel = (document.getElementById('new-assign-model')?.value || '').trim();
+      if (manualModel) {
+        model_code = manualModel;
+        ai_level = detectConcepts(model_code).maxLevel;
+      }
+      // Otherwise, generate with Groq (unless creative or no directions)
+      else if (dir && type !== 'creative') {
         // Inject loading overlay directly so it appears before any await
         const loadEl = document.createElement('div');
         loadEl.id = 'groq-loading-overlay';
@@ -7819,6 +7883,11 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     }
 
     function renderAddAssignModal() {
+      let modelCodehsPaste = '';
+      if (modelCodeHSPasteFallback) {
+        modelCodehsPaste = '<textarea class="form-textarea" id="model-codehs-paste" rows="4" placeholder="Paste the full page source here…" style="resize:vertical;font-family:monospace;font-size:11px;margin-bottom:8px"></textarea>' +
+          '<button type="button" class="btn btn-primary" style="width:100%;font-size:12px" onclick="parseModelFromPaste()">Extract code from pasted source</button>';
+      }
       return `<div class="modal-overlay" onclick="closeAddAssign()">
     <div class="add-modal" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -7827,7 +7896,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       </div>
       <div class="form-group">
         <label class="form-label">Title *</label>
-        <input class="form-input" id="new-assign-title" placeholder="e.g. While Loops Practice"/>
+        <input class="form-input" id="new-assign-title" value="${esc(newAssignTitle)}" placeholder="e.g. While Loops Practice" oninput="newAssignTitle=this.value"/>
       </div>
       <div class="form-group">
         <label class="form-label">Type</label>
@@ -7876,6 +7945,28 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         ` : ''}
         <textarea class="form-textarea" id="new-assign-starter" rows="3"
           placeholder="e.g. def main():\n    # your code here" style="resize:vertical;font-family:monospace;font-size:12px" oninput="assignStarterValue=this.value">${esc(assignStarterValue)}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Model code (optional — overrides AI-generated model)</label>
+        <p style="font-size:11px;color:#6b7280;margin-bottom:6px">Provide your own solution code. If left blank and directions are provided, Groq will generate one automatically.</p>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button type="button" class="btn ${modelCodeMode === 'none' ? 'btn-primary' : ''}" style="font-size:11px;padding:4px 12px" onclick="_saveAssignFormState();modelCodeMode='none';render()">Auto (Groq)</button>
+          <button type="button" class="btn ${modelCodeMode === 'type' ? 'btn-primary' : ''}" style="font-size:11px;padding:4px 12px" onclick="_saveAssignFormState();modelCodeMode='type';render()">Paste it</button>
+          <button type="button" class="btn ${modelCodeMode === 'codehs' ? 'btn-primary' : ''}" style="font-size:11px;padding:4px 12px" onclick="_saveAssignFormState();modelCodeMode='codehs';render()">Fetch from CodeHS</button>
+        </div>
+        ${modelCodeMode === 'codehs' ? `
+        <p style="font-size:11px;color:#6b7280;margin-bottom:6px;line-height:1.4">Paste a CodeHS sandbox URL with the model solution. Only the code will be extracted.</p>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input class="form-input" id="new-assign-model-codehs-url" value="${esc(modelCodehsUrl)}" placeholder="https://codehs.com/sandbox/id/..." style="flex:1;font-size:12px" oninput="modelCodehsUrl=this.value"/>
+          <button type="button" class="btn btn-primary" style="font-size:12px;white-space:nowrap" onclick="fetchModelFromCodeHS()" id="fetch-model-btn">Fetch</button>
+        </div>
+        ${modelCodeFetchError ? '<p style="font-size:11px;color:#dc2626;margin-bottom:6px;line-height:1.4">' + esc(modelCodeFetchError) + '</p>' : ''}
+        ${modelCodehsPaste}
+        ` : ''}
+        ${modelCodeMode !== 'none' ? `
+        <textarea class="form-textarea" id="new-assign-model" rows="4"
+          placeholder="Paste the correct solution code here…" style="resize:vertical;font-family:monospace;font-size:12px" oninput="modelCodeValue=this.value">${esc(modelCodeValue)}</textarea>
+        ` : ''}
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="saveNewAssign()">Add Assignment</button>
     </div>
