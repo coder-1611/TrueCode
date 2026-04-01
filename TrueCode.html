@@ -7277,8 +7277,11 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       // firstPart may be "Brock James" — take only first name
       const firstWords = firstPart.split(/\s+/);
       const firstName = firstWords[0];
-      // lastPart is usually a single last name, but keep it as-is
-      return _cleanName(firstName + ' ' + lastPart);
+      // lastPart may have extra words (middle names stuck before the last name)
+      // e.g. "James Purdy, Brock" — "James" is middle, "Purdy" is last
+      const lastWords = lastPart.split(/\s+/);
+      const lastName = lastWords[lastWords.length - 1];
+      return _cleanName(firstName + ' ' + lastName);
     }
 
     function _parseFirstLast(line) {
