@@ -6965,14 +6965,11 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
           <svg viewBox="0 0 480 220" style="width:100%;max-width:480px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="curve-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#0d9488" stop-opacity=".25"/>
-                <stop offset="100%" stop-color="#0d9488" stop-opacity=".03"/>
+                <stop offset="0%" stop-color="#0d9488" stop-opacity=".22"/>
+                <stop offset="100%" stop-color="#0d9488" stop-opacity=".02"/>
               </linearGradient>
-              <marker id="arrow-down" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                <path d="M1,2 L5,8 L9,2" fill="none" stroke="#0f766e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </marker>
             </defs>
-            <!-- Grid lines -->
+            <!-- Grid -->
             <line x1="50" y1="30" x2="50" y2="180" stroke="#d1d5db" stroke-width=".5"/>
             <line x1="50" y1="180" x2="460" y2="180" stroke="#d1d5db" stroke-width=".5"/>
             <line x1="50" y1="30" x2="460" y2="30" stroke="#e5e7eb" stroke-width=".5" stroke-dasharray="4,4"/>
@@ -6986,22 +6983,21 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
             <text x="44" y="94" text-anchor="end" font-size="10" fill="#9ca3af">90%</text>
             <text x="44" y="124" text-anchor="end" font-size="10" fill="#9ca3af">85%</text>
             <text x="44" y="154" text-anchor="end" font-size="10" fill="#9ca3af">80%</text>
-            <!-- Y-axis title -->
             <text x="12" y="108" text-anchor="middle" font-size="10" fill="#6b7280" transform="rotate(-90,12,108)">Similarity threshold</text>
-            <!-- Shaded area under curve -->
-            <path d="M70,36 C130,40 200,72 260,84 C320,96 390,114 440,126 L440,180 L70,180 Z" fill="url(#curve-fill)"/>
-            <!-- The curve itself -->
-            <path d="M70,36 C130,40 200,72 260,84 C320,96 390,114 440,126" fill="none" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/>
-            <!-- Data points with labels -->
-            <circle cx="70" cy="36" r="4.5" fill="#0d9488"/>
+            <!-- Smooth curve through all 5 points using Catmull-Rom-style cubic beziers -->
+            <!-- Points: (70,36) (160,60) (250,84) (350,108) (440,126) -->
+            <path d="M70,36 C100,44 130,52 160,60 C190,68 220,76 250,84 C283,93 317,101 350,108 C380,114 410,120 440,126 L440,180 L70,180 Z" fill="url(#curve-fill)"/>
+            <path d="M70,36 C100,44 130,52 160,60 C190,68 220,76 250,84 C283,93 317,101 350,108 C380,114 410,120 440,126" fill="none" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Data points -->
+            <circle cx="70" cy="36" r="4" fill="#fff" stroke="#0d9488" stroke-width="2"/>
             <text x="70" y="24" text-anchor="middle" font-size="10" font-weight="600" fill="#0d9488">98%</text>
-            <circle cx="160" cy="60" r="4.5" fill="#0d9488"/>
+            <circle cx="160" cy="60" r="4" fill="#fff" stroke="#0d9488" stroke-width="2"/>
             <text x="160" y="48" text-anchor="middle" font-size="10" font-weight="600" fill="#0d9488">95%</text>
-            <circle cx="250" cy="84" r="4.5" fill="#0d9488"/>
+            <circle cx="250" cy="84" r="4" fill="#fff" stroke="#0d9488" stroke-width="2"/>
             <text x="250" y="72" text-anchor="middle" font-size="10" font-weight="600" fill="#0d9488">92%</text>
-            <circle cx="350" cy="108" r="4.5" fill="#0d9488"/>
+            <circle cx="350" cy="108" r="4" fill="#fff" stroke="#0d9488" stroke-width="2"/>
             <text x="350" y="96" text-anchor="middle" font-size="10" font-weight="600" fill="#0d9488">88%</text>
-            <circle cx="440" cy="126" r="4.5" fill="#0d9488"/>
+            <circle cx="440" cy="126" r="4" fill="#fff" stroke="#0d9488" stroke-width="2"/>
             <text x="440" y="114" text-anchor="middle" font-size="10" font-weight="600" fill="#0d9488">83%</text>
             <!-- X-axis labels -->
             <text x="70" y="196" text-anchor="middle" font-size="10" fill="#6b7280">~10</text>
@@ -7009,18 +7005,10 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
             <text x="250" y="196" text-anchor="middle" font-size="10" fill="#6b7280">~50</text>
             <text x="350" y="196" text-anchor="middle" font-size="10" fill="#6b7280">~100</text>
             <text x="440" y="196" text-anchor="middle" font-size="10" fill="#6b7280">200+</text>
-            <!-- X-axis title -->
             <text x="255" y="214" text-anchor="middle" font-size="10" fill="#6b7280">Lines of code</text>
-            <!-- Slope arrows pointing downward along the curve -->
-            <line x1="112" y1="42" x2="128" y2="54" stroke="#0f766e" stroke-width="1.8" marker-end="url(#arrow-down)"/>
-            <line x1="202" y1="68" x2="218" y2="78" stroke="#0f766e" stroke-width="1.8" marker-end="url(#arrow-down)"/>
-            <line x1="298" y1="90" x2="314" y2="100" stroke="#0f766e" stroke-width="1.8" marker-end="url(#arrow-down)"/>
-            <line x1="392" y1="112" x2="408" y2="120" stroke="#0f766e" stroke-width="1.8" marker-end="url(#arrow-down)"/>
-            <!-- "Flagged" zone label above curve -->
-            <text x="380" y="50" font-size="11" fill="#b91c1c" font-weight="600" opacity=".7">Flagged zone</text>
-            <path d="M370,54 L370,76" stroke="#b91c1c" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
-            <!-- "Safe" zone label below curve -->
-            <text x="130" y="150" font-size="11" fill="#16a34a" font-weight="600" opacity=".6">Below threshold</text>
+            <!-- Zone labels -->
+            <text x="380" y="50" font-size="11" fill="#b91c1c" font-weight="600" opacity=".6">Flagged zone</text>
+            <text x="130" y="155" font-size="11" fill="#16a34a" font-weight="600" opacity=".5">Below threshold</text>
           </svg>
           <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px">Longer code needs less similarity to flag — short programs are expected to converge.</p>
         </div>
