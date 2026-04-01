@@ -2582,7 +2582,7 @@
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: `Write a short, correct Python solution for this student assignment. Use only the Python concepts the assignment naturally requires — do not add unnecessary complexity. Return ONLY the raw Python code with no markdown fences and no explanation.\n\nAssignment: ${directions}` }],
-            max_tokens: 2000, temperature: 0.1
+            max_tokens: 30000, temperature: 0.1
           })
         });
       } catch (networkErr) {
