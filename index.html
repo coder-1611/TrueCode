@@ -6270,7 +6270,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
   <h1 style="margin-bottom:0">Students</h1>
   <div style="display:flex;gap:8px">
-    <button class="btn btn-outline" style="font-size:12px" onclick="bulkAddStudents()">Paste List</button>
+    <button class="btn btn-outline" style="font-size:12px" onclick="bulkAddStudents()">Bulk Add / CSV</button>
     <button class="btn btn-primary" style="font-size:12px" onclick="openAddStudent()">+ Add Student</button>
   </div>
 </div>${MOCK.students.map(s => {
@@ -7249,17 +7249,43 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 
     // ── Bulk student import ──────────────────────────────────
     function bulkAddStudents() {
-      const val = prompt('Paste student names (one per line, or comma-separated):');
+      const val = prompt('Paste student names — one per line, comma-separated, or CSV (name,password):\n\nExamples:\n  Alice\n  Bob, Charlie\n  Jamie Lee,mypass123');
       if (!val) return;
-      const names = val.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
-      if (!names.length) return;
+      const lines = val.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+      // Detect if any line has a comma that looks like CSV (name,password)
+      // vs simple comma-separated names. Heuristic: if the first non-empty
+      // line has exactly one comma and the part after it has no further commas,
+      // treat the whole input as CSV rows (name,password per line).
+      const firstLine = lines[0] || '';
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      const isCSV = commaCount === 1 && lines.length > 1;
+      // Also treat as CSV if any line matches "word(s),word(s)" pattern exactly
+      const csvPattern = /^[^,]+,[^,]+$/;
+      const looksCSV = lines.every(l => csvPattern.test(l) || l.split(',').length === 2);
+
+      let entries = []; // [{name, password}]
+      if (looksCSV && lines.length > 0) {
+        // Check if first line is a header row
+        const firstParts = firstLine.split(',').map(p => p.trim().toLowerCase());
+        const startIdx = (firstParts[0] === 'name' || firstParts[0] === 'student') ? 1 : 0;
+        for (let i = startIdx; i < lines.length; i++) {
+          const parts = lines[i].split(',').map(p => p.trim());
+          if (parts[0]) entries.push({ name: parts[0], password: parts[1] || '' });
+        }
+      } else {
+        // Plain list: split by commas and newlines, no passwords
+        const names = val.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+        entries = names.map(n => ({ name: n, password: '' }));
+      }
+
+      if (!entries.length) return;
       const existing = new Set(MOCK.students.map(s => s.name.toLowerCase()));
       let added = 0;
-      for (const name of names) {
-        if (existing.has(name.toLowerCase())) continue;
+      for (const entry of entries) {
+        if (existing.has(entry.name.toLowerCase())) continue;
         const id = MOCK.students.length ? Math.max(...MOCK.students.map(s => s.id)) + 1 : 1;
-        MOCK.students.push({ id, name, class_id: 1, effort_rating: 3, password: '' });
-        existing.add(name.toLowerCase());
+        MOCK.students.push({ id, name: entry.name, class_id: 1, effort_rating: 3, password: entry.password });
+        existing.add(entry.name.toLowerCase());
         added++;
       }
       if (added) {
@@ -7267,7 +7293,11 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         if (classCode) fbRegisterCode(classCode);
         render();
       }
-      alert(`Added ${added} student${added !== 1 ? 's' : ''}${names.length - added > 0 ? ` (${names.length - added} already existed)` : ''}.`);
+      const pwCount = entries.filter(e => e.password).length;
+      let msg = `Added ${added} student${added !== 1 ? 's' : ''}`;
+      if (entries.length - added > 0) msg += ` (${entries.length - added} already existed)`;
+      if (pwCount > 0) msg += `. ${pwCount} with passwords set.`;
+      alert(msg);
     }
 
     // ── Inline editing helpers ──────────────────────────────
@@ -7608,7 +7638,6 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       if (MOCK.students.some(s => s.name.toLowerCase() === name.toLowerCase())) { alert('A student with that name already exists.'); return; }
       _savingNewStudent = true;
       const pw = (document.getElementById('new-stud-pw')?.value || '').trim();
-      if (!pw) { _savingNewStudent = false; document.getElementById('new-stud-pw').focus(); return; }
       const id = Math.max(0, ...MOCK.students.map(s => s.id)) + 1;
       MOCK.students.push({ id, name, effort_rating: 3, password: pw });
       addStudentOpen = false; _savingNewStudent = false; saveState(); render();
@@ -7861,9 +7890,10 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
           onkeydown="if(event.key==='Enter')document.getElementById('new-stud-pw').focus()"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Submission password *</label>
+        <label class="form-label">Submission password</label>
         <input class="form-input" id="new-stud-pw" placeholder="e.g. Jamie42"
           onkeydown="if(event.key==='Enter')saveNewStudent()"/>
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px">Leave blank to skip — you can set it later on the student's profile page.</p>
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="saveNewStudent()">Add Student</button>
     </div>
