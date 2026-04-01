@@ -5215,6 +5215,7 @@ ${contentText.slice(0, 6000)}`
       if (aiPanelSub) { const d = document.createElement('div'); d.innerHTML = renderAIPanel(aiPanelSub); document.body.appendChild(d); }
       if (diffPair) { const d = document.createElement('div'); d.innerHTML = renderDiff(...diffPair); document.body.appendChild(d); }
       if (addStudentOpen) { const d = document.createElement('div'); d.innerHTML = renderAddStudentModal(); document.body.appendChild(d); }
+      if (bulkAddOpen) { const d = document.createElement('div'); d.innerHTML = renderBulkAddModal(); document.body.appendChild(d); }
       if (addAssignOpen) { const d = document.createElement('div'); d.innerHTML = renderAddAssignModal(); document.body.appendChild(d); }
       if (modelModalId) { const d = document.createElement('div'); d.innerHTML = renderModelModal(); document.body.appendChild(d); }
       if (addSubModal) { const d = document.createElement('div'); d.innerHTML = renderAddSubModal(); document.body.appendChild(d); }
@@ -6172,6 +6173,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     // ── Grid page ─────────────────────────────────────────────
     let addStudentOpen = false;
     let addAssignOpen = false;
+    let bulkAddOpen = false;
+    let bulkAddFormat = 'first'; // 'first' = First Last, 'last' = Last, First
     let newStudentName = '';
     let newAssignTitle = '';
     let newAssignType = 'structured';
@@ -6270,7 +6273,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
       return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
   <h1 style="margin-bottom:0">Students</h1>
   <div style="display:flex;gap:8px">
-    <button class="btn btn-outline" style="font-size:12px" onclick="bulkAddStudents()">Bulk Add / CSV</button>
+    <button class="btn btn-outline" style="font-size:12px" onclick="bulkAddStudents()">Bulk Add</button>
     <button class="btn btn-primary" style="font-size:12px" onclick="openAddStudent()">+ Add Student</button>
   </div>
 </div>${MOCK.students.map(s => {
@@ -7248,56 +7251,126 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     }
 
     // ── Bulk student import ──────────────────────────────────
-    function bulkAddStudents() {
-      const val = prompt('Paste student names — one per line, comma-separated, or CSV (name,password):\n\nExamples:\n  Alice\n  Bob, Charlie\n  Jamie Lee,mypass123');
-      if (!val) return;
-      const lines = val.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-      // Detect if any line has a comma that looks like CSV (name,password)
-      // vs simple comma-separated names. Heuristic: if the first non-empty
-      // line has exactly one comma and the part after it has no further commas,
-      // treat the whole input as CSV rows (name,password per line).
-      const firstLine = lines[0] || '';
-      const commaCount = (firstLine.match(/,/g) || []).length;
-      const isCSV = commaCount === 1 && lines.length > 1;
-      // Also treat as CSV if any line matches "word(s),word(s)" pattern exactly
-      const csvPattern = /^[^,]+,[^,]+$/;
-      const looksCSV = lines.every(l => csvPattern.test(l) || l.split(',').length === 2);
+    function bulkAddStudents() { bulkAddOpen = true; bulkAddFormat = 'first'; render(); }
+    function closeBulkAdd() { bulkAddOpen = false; render(); }
 
-      let entries = []; // [{name, password}]
-      if (looksCSV && lines.length > 0) {
-        // Check if first line is a header row
-        const firstParts = firstLine.split(',').map(p => p.trim().toLowerCase());
-        const startIdx = (firstParts[0] === 'name' || firstParts[0] === 'student') ? 1 : 0;
-        for (let i = startIdx; i < lines.length; i++) {
-          const parts = lines[i].split(',').map(p => p.trim());
-          if (parts[0]) entries.push({ name: parts[0], password: parts[1] || '' });
+    function _cleanName(raw) {
+      // Strip quotes
+      let n = raw.replace(/["'""''`]/g, '').trim();
+      // Title-case if ALL CAPS or all lower
+      if (n === n.toUpperCase() || n === n.toLowerCase()) {
+        n = n.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+      }
+      // Collapse extra spaces
+      return n.replace(/\s+/g, ' ').trim();
+    }
+
+    function _parseLastFirst(line) {
+      // "Last, First Middle" → "First Last"
+      // Handle quotes, tabs, and extra whitespace
+      const cleaned = line.replace(/["'""''`]/g, '').replace(/\t/g, ' ').trim();
+      const commaIdx = cleaned.indexOf(',');
+      if (commaIdx === -1) return _cleanName(cleaned); // no comma, treat as first-last
+      const lastPart = cleaned.slice(0, commaIdx).trim();
+      const firstPart = cleaned.slice(commaIdx + 1).trim();
+      if (!firstPart || !lastPart) return _cleanName(cleaned);
+      // firstPart may be "Brock James" — take only first name
+      const firstWords = firstPart.split(/\s+/);
+      const firstName = firstWords[0];
+      // lastPart is usually a single last name, but keep it as-is
+      return _cleanName(firstName + ' ' + lastPart);
+    }
+
+    function _parseFirstLast(line) {
+      // "First Middle Last" → "First Last" (drop middle names if 3+ words)
+      const cleaned = line.replace(/["'""''`]/g, '').replace(/\t/g, ' ').trim();
+      const words = cleaned.split(/\s+/).filter(w => w);
+      if (words.length <= 2) return _cleanName(cleaned);
+      // 3+ words: first word is first name, last word is last name, middle dropped
+      return _cleanName(words[0] + ' ' + words[words.length - 1]);
+    }
+
+    function submitBulkAdd() {
+      const ta = document.getElementById('bulk-add-textarea');
+      const val = (ta?.value || '').trim();
+      if (!val) return;
+      const isLastFirst = bulkAddFormat === 'last';
+      const lines = val.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+      // Skip header rows
+      const headerPattern = /^(name|student|last|first|full)/i;
+      const startIdx = headerPattern.test(lines[0]?.replace(/["',]/g, '')) ? 1 : 0;
+
+      const names = [];
+      for (let i = startIdx; i < lines.length; i++) {
+        const line = lines[i];
+        let name;
+        if (isLastFirst) {
+          name = _parseLastFirst(line);
+        } else {
+          // First Last mode — could be one per line or comma-separated list
+          // If line has a comma, split into separate names (not Last,First)
+          const parts = line.split(',').map(p => p.trim()).filter(p => p);
+          for (const part of parts) {
+            const parsed = _parseFirstLast(part);
+            if (parsed) names.push(parsed);
+          }
+          continue;
         }
-      } else {
-        // Plain list: split by commas and newlines, no passwords
-        const names = val.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
-        entries = names.map(n => ({ name: n, password: '' }));
+        if (name) names.push(name);
       }
 
-      if (!entries.length) return;
+      if (!names.length) return;
       const existing = new Set(MOCK.students.map(s => s.name.toLowerCase()));
       let added = 0;
-      for (const entry of entries) {
-        if (existing.has(entry.name.toLowerCase())) continue;
+      for (const name of names) {
+        if (existing.has(name.toLowerCase())) continue;
         const id = MOCK.students.length ? Math.max(...MOCK.students.map(s => s.id)) + 1 : 1;
-        MOCK.students.push({ id, name: entry.name, class_id: 1, effort_rating: 3, password: entry.password });
-        existing.add(entry.name.toLowerCase());
+        MOCK.students.push({ id, name, class_id: 1, effort_rating: 3, password: '' });
+        existing.add(name.toLowerCase());
         added++;
       }
       if (added) {
         saveState();
         if (classCode) fbRegisterCode(classCode);
-        render();
       }
-      const pwCount = entries.filter(e => e.password).length;
-      let msg = `Added ${added} student${added !== 1 ? 's' : ''}`;
-      if (entries.length - added > 0) msg += ` (${entries.length - added} already existed)`;
-      if (pwCount > 0) msg += `. ${pwCount} with passwords set.`;
-      alert(msg);
+      bulkAddOpen = false;
+      render();
+      const skipped = names.length - added;
+      alert(`Added ${added} student${added !== 1 ? 's' : ''}${skipped > 0 ? ` (${skipped} already existed)` : ''}.`);
+    }
+
+    function renderBulkAddModal() {
+      const exFirst = 'Alice Johnson\nBob Smith\nCharlie Brown';
+      const exLast = 'Johnson, Alice\nSmith, Bob\nBrown, Charlie';
+      return `<div class="modal-overlay" onclick="closeBulkAdd()">
+    <div class="add-modal" style="max-width:480px" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Bulk Add Students</h2>
+        <button class="close-btn" onclick="closeBulkAdd()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Name format</label>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button type="button" class="btn ${bulkAddFormat === 'first' ? 'btn-primary' : ''}" style="font-size:12px;padding:6px 14px" onclick="bulkAddFormat='first';render()">First Last</button>
+          <button type="button" class="btn ${bulkAddFormat === 'last' ? 'btn-primary' : ''}" style="font-size:12px;padding:6px 14px" onclick="bulkAddFormat='last';render()">Last, First</button>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:2px">
+          ${bulkAddFormat === 'first'
+            ? 'One name per line, or comma-separated. Middle names are dropped automatically.'
+            : 'One name per line: <strong>Last, First</strong>. Middle names after the first name are dropped.'}
+        </p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Paste names</label>
+        <textarea class="form-textarea" id="bulk-add-textarea" rows="8"
+          placeholder="${bulkAddFormat === 'first' ? esc(exFirst) : esc(exLast)}"
+          style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.6"></textarea>
+        <p style="font-size:11px;color:#9ca3af;margin-top:4px">ALL CAPS and quoted names are cleaned up automatically.</p>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="submitBulkAdd()">Add Students</button>
+    </div>
+  </div>`;
     }
 
     // ── Inline editing helpers ──────────────────────────────
