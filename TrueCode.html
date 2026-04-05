@@ -697,15 +697,18 @@
       cursor: pointer;
       font-weight: 500;
     }
+
     .term-chip-btn:hover {
       background: #4338ca;
       color: #fff;
     }
+
     [data-theme="dark"] .term-chip-btn {
       background: #312e81;
       color: #a5b4fc;
       border-color: #4338ca;
     }
+
     [data-theme="dark"] .term-chip-btn:hover {
       background: #4f46e5;
       color: #fff;
@@ -726,9 +729,10 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       animation: slideUp 0.25s ease;
     }
+
     .undo-toast button {
       background: none;
       border: 1px solid #6366f1;
@@ -739,29 +743,42 @@
       font-weight: 600;
       cursor: pointer;
     }
+
     .undo-toast button:hover {
       background: #6366f1;
       color: #fff;
     }
+
     @keyframes slideUp {
-      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+      from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
     }
 
     .editable {
       cursor: pointer;
-      border-bottom: 1px dashed rgba(99,102,241,0.3);
+      border-bottom: 1px dashed rgba(99, 102, 241, 0.3);
       transition: border-color 0.15s;
     }
+
     .editable:hover {
       border-bottom-color: #6366f1;
     }
+
     [data-theme="dark"] .editable {
-      border-bottom-color: rgba(165,180,252,0.3);
+      border-bottom-color: rgba(165, 180, 252, 0.3);
     }
+
     [data-theme="dark"] .editable:hover {
       border-bottom-color: #a5b4fc;
     }
+
     .edit-hint {
       font-size: 10px;
       color: #9ca3af;
@@ -769,9 +786,10 @@
       opacity: 0;
       transition: opacity 0.15s;
     }
-    .editable:hover + .edit-hint,
+
+    .editable:hover+.edit-hint,
     .editable:hover .edit-hint,
-    *:hover > .edit-hint {
+    *:hover>.edit-hint {
       opacity: 1;
     }
 
@@ -2140,8 +2158,8 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      background: var(--hero-bg);
-      z-index: 900;
+      background: #000;
+      z-index: 10001;
     }
 
     .hero-canvas {
@@ -2149,6 +2167,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
+      display: block;
       pointer-events: none;
       z-index: 0;
     }
@@ -2236,27 +2255,49 @@
     .tut-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.55);
+      background: rgba(0, 0, 0, .55);
       z-index: 800;
       display: flex;
       align-items: center;
       justify-content: center;
       animation: tut-fade-in .25s ease;
     }
-    @keyframes tut-fade-in { from { opacity: 0 } to { opacity: 1 } }
+
+    @keyframes tut-fade-in {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
     .tut-card {
       background: #fff;
       border-radius: 16px;
       padding: 36px 32px 28px;
       max-width: 520px;
       width: 92%;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
       display: flex;
       flex-direction: column;
       gap: 16px;
       animation: tut-slide-up .3s ease;
     }
-    @keyframes tut-slide-up { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+
+    @keyframes tut-slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
     .tut-step-badge {
       font-size: 11px;
       font-weight: 600;
@@ -2264,38 +2305,54 @@
       letter-spacing: .04em;
       text-transform: uppercase;
     }
+
     .tut-title {
       font-size: 20px;
       font-weight: 700;
       color: #1a1a2e;
       margin: 0;
     }
+
     .tut-body {
       font-size: 14px;
       line-height: 1.7;
       color: #4b5563;
     }
-    .tut-body strong { color: #1a1a2e }
+
+    .tut-body strong {
+      color: #1a1a2e
+    }
+
     .tut-dots {
       display: flex;
       gap: 6px;
       justify-content: center;
       padding: 4px 0;
     }
+
     .tut-dot {
-      width: 8px; height: 8px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: #e2e6ec;
       transition: background .2s;
     }
-    .tut-dot.active { background: #0d9488 }
-    .tut-dot.done { background: #6ee7b7 }
+
+    .tut-dot.active {
+      background: #0d9488
+    }
+
+    .tut-dot.done {
+      background: #6ee7b7
+    }
+
     .tut-actions {
       display: flex;
       gap: 10px;
       justify-content: flex-end;
       margin-top: 4px;
     }
+
     .tut-btn {
       padding: 9px 20px;
       border-radius: 8px;
@@ -2305,23 +2362,52 @@
       cursor: pointer;
       transition: all .15s ease;
     }
-    .tut-btn:hover { transform: scale(1.03) }
+
+    .tut-btn:hover {
+      transform: scale(1.03)
+    }
+
     .tut-btn-skip {
       background: transparent;
       color: #9ca3af;
     }
-    .tut-btn-skip:hover { color: #6b7280 }
+
+    .tut-btn-skip:hover {
+      color: #6b7280
+    }
+
     .tut-btn-next {
       background: #0d9488;
       color: #fff;
     }
-    .tut-btn-next:hover { background: #0f766e }
-    [data-theme="dark"] .tut-card { background: #1e1e2e; }
-    [data-theme="dark"] .tut-title { color: #cdd6f4 }
-    [data-theme="dark"] .tut-body { color: #a6adc8 }
-    [data-theme="dark"] .tut-body strong { color: #cdd6f4 }
-    [data-theme="dark"] .tut-dot { background: #45475a }
-    [data-theme="dark"] .tut-dot.done { background: #a6e3a1 }
+
+    .tut-btn-next:hover {
+      background: #0f766e
+    }
+
+    [data-theme="dark"] .tut-card {
+      background: #1e1e2e;
+    }
+
+    [data-theme="dark"] .tut-title {
+      color: #cdd6f4
+    }
+
+    [data-theme="dark"] .tut-body {
+      color: #a6adc8
+    }
+
+    [data-theme="dark"] .tut-body strong {
+      color: #cdd6f4
+    }
+
+    [data-theme="dark"] .tut-dot {
+      background: #45475a
+    }
+
+    [data-theme="dark"] .tut-dot.done {
+      background: #a6e3a1
+    }
   </style>
 </head>
 
@@ -2424,7 +2510,8 @@
       <div style="flex:1"></div>
       <a class="nav-link" id="nav-reset-demo" style="display:none;font-size:11px;color:#585b70;margin-top:4px"
         onclick="resetToDemo()">Reset demo</a>
-      <a class="nav-link" onclick="startTutorial()" style="font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer">&#63;&#xFE0E; Help</a>
+      <a class="nav-link" onclick="startTutorial()"
+        style="font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer">&#63;&#xFE0E; Help</a>
       <a class="nav-link" onclick="toggleTheme()" style="font-size:12px;color:#94a3b8;margin-top:0;cursor:pointer"
         id="theme-toggle">&#9790; Dark</a>
       <a class="nav-link" onclick="showPage('account')" style="font-size:12px;color:#94a3b8;margin-top:2px">&#9881;
@@ -4000,11 +4087,11 @@ ${contentText.slice(0, 6000)}`
       // r) Vocabulary diversity — AI uses a broader range of Python built-ins
       // than students typically know in short code.
       {
-        const builtins = new Set(['abs','all','any','bin','bool','chr','dict','dir','divmod','enumerate',
-          'eval','exec','filter','float','format','frozenset','getattr','globals','hasattr','hash','hex',
-          'id','input','int','isinstance','issubclass','iter','len','list','locals','map','max','min',
-          'next','object','oct','open','ord','pow','print','range','repr','reversed','round','set',
-          'setattr','slice','sorted','str','sum','super','tuple','type','vars','zip']);
+        const builtins = new Set(['abs', 'all', 'any', 'bin', 'bool', 'chr', 'dict', 'dir', 'divmod', 'enumerate',
+          'eval', 'exec', 'filter', 'float', 'format', 'frozenset', 'getattr', 'globals', 'hasattr', 'hash', 'hex',
+          'id', 'input', 'int', 'isinstance', 'issubclass', 'iter', 'len', 'list', 'locals', 'map', 'max', 'min',
+          'next', 'object', 'oct', 'open', 'ord', 'pow', 'print', 'range', 'repr', 'reversed', 'round', 'set',
+          'setattr', 'slice', 'sorted', 'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip']);
         const usedBuiltins = new Set();
         for (const b of builtins) {
           if (new RegExp('\\b' + b + '\\s*\\(').test(code)) usedBuiltins.add(b);
@@ -4128,8 +4215,10 @@ ${contentText.slice(0, 6000)}`
       const avgCommentWords = commentTexts.length > 0
         ? commentTexts.reduce((s, c) => s + c.split(/\s+/).filter(w => w).length, 0) / commentTexts.length : 0;
 
-      return { namingStyle, commentDensity, avgLineLen, funcCount, blankRatio, hasDocstrings,
-               avgVarNameLen, singleLetterRatio, indentConsistency, avgCommentWords };
+      return {
+        namingStyle, commentDensity, avgLineLen, funcCount, blankRatio, hasDocstrings,
+        avgVarNameLen, singleLetterRatio, indentConsistency, avgCommentWords
+      };
     }
 
     function detectStyleInconsistency(studentId, currentSub) {
@@ -4515,7 +4604,14 @@ ${contentText.slice(0, 6000)}`
         }
         if (data.submissions) MOCK.submissions = data.submissions;
         if (data.dismissed) dismissedSigs = new Set(data.dismissed);
-        if (data.curricula) MOCK.curricula = data.curricula;
+        if (data.curricula) {
+          MOCK.curricula = data.curricula;
+          // Normalize legacy records that may be missing fields
+          MOCK.curricula.forEach(c => {
+            if (!Array.isArray(c.terms)) c.terms = [];
+            if (!Array.isArray(c.assignment_ids)) c.assignment_ids = [];
+          });
+        }
         if (data.setupDone) localStorage.setItem(getSetupKey(), '1');
         if (data.isDemoMode) localStorage.setItem('tc_demo_mode', '1');
         else localStorage.removeItem('tc_demo_mode');
@@ -4559,7 +4655,16 @@ ${contentText.slice(0, 6000)}`
       } catch (e) { console.warn('Load assignments failed:', e); }
       try { const sb = localStorage.getItem(userKey('acc_v2_submissions')); if (sb) MOCK.submissions = JSON.parse(sb); } catch (e) { console.warn('Load submissions failed:', e); }
       try { const d = localStorage.getItem(userKey('acc_v2_dismissed')); if (d) dismissedSigs = new Set(JSON.parse(d)); } catch (e) { console.warn('Load dismissed failed:', e); }
-      try { const cur = localStorage.getItem(userKey('acc_v2_curricula')); if (cur) MOCK.curricula = JSON.parse(cur); } catch (e) { console.warn('Load curricula failed:', e); }
+      try {
+        const cur = localStorage.getItem(userKey('acc_v2_curricula'));
+        if (cur) {
+          MOCK.curricula = JSON.parse(cur);
+          MOCK.curricula.forEach(c => {
+            if (!Array.isArray(c.terms)) c.terms = [];
+            if (!Array.isArray(c.assignment_ids)) c.assignment_ids = [];
+          });
+        }
+      } catch (e) { console.warn('Load curricula failed:', e); }
     }
 
 
@@ -5370,7 +5475,7 @@ ${contentText.slice(0, 6000)}`
       const hero = document.createElement('div');
       hero.className = 'hero-section';
       hero.innerHTML = `
-        <canvas class="hero-canvas" id="hero-particles"></canvas>
+        <canvas class="hero-canvas" id="hero-particles" width="${window.innerWidth}" height="${window.innerHeight}"></canvas>
         <div class="hero-greeting">Hello, ${esc(firstName)}.</div>
         <div class="hero-date">${dateStr}</div>
         <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:6px">V4</div>
@@ -5747,7 +5852,7 @@ ${contentText.slice(0, 6000)}`
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:13px;font-weight:600;color:#166534">Curriculum:</span>
       <span style="font-size:13px;color:#374151">${esc(linkedCurr.title)}</span>
-      <span style="font-size:11px;color:#6b7280">(${linkedCurr.terms.length} terms)</span>
+      <span style="font-size:11px;color:#6b7280">(${(linkedCurr.terms || []).length} terms)</span>
     </div>
     <button class="btn btn-outline" style="font-size:11px" onclick="currentCurrId=${linkedCurr.id};activePage='curriculum-detail';render()">View terms →</button>
   </div>` : '';
@@ -6055,7 +6160,7 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 <div class="list-link" onclick="showCurriculum(${c.id})">
   <div style="display:flex;align-items:center;gap:10px">
     <span style="font-weight:500">${esc(c.title)}</span>
-    <span style="font-size:11px;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:10px">${c.terms.length} terms</span>
+    <span style="font-size:11px;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:10px">${(c.terms || []).length} terms</span>
     ${c.assignment_ids?.length ? `<span style="font-size:11px;color:#0d9488;background:#f0fdfa;padding:2px 8px;border-radius:10px">${c.assignment_ids.length} assignment${c.assignment_ids.length !== 1 ? 's' : ''}</span>` : ''}
   </div>
   <span class="muted">${c.created_at}</span>
@@ -6066,6 +6171,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
     function renderCurriculumDetail(id) {
       const curr = getCurriculum(id);
       if (!curr) return '<p>Not found.</p>';
+      if (!Array.isArray(curr.terms)) curr.terms = [];
+      if (!Array.isArray(curr.assignment_ids)) curr.assignment_ids = [];
 
       const assignCheckboxes = MOCK.assignments.map(a => {
         const checked = curr.assignment_ids?.includes(a.id);
@@ -7046,8 +7153,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         <p style="margin:12px 0"><strong>Fingerprint metrics:</strong></p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
           ${['Average line length', 'Blank line ratio', 'Comment ratio', 'Avg variable name length', 'Single-letter variable ratio', 'Indentation consistency', 'Comment complexity'].map(m =>
-            `<span style="background:#f3f4f6;padding:4px 10px;border-radius:6px;font-size:12px">${m}</span>`
-          ).join('')}
+        `<span style="background:#f3f4f6;padding:4px 10px;border-radius:6px;font-size:12px">${m}</span>`
+      ).join('')}
         </div>
         <p>A sudden shift in several of these metrics (e.g., always using short variable names but this submission has long descriptive ones) suggests the code may not be the student's own work.</p>
       `)}
@@ -7360,8 +7467,8 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
         </div>
         <p style="font-size:11px;color:#9ca3af;margin-bottom:2px">
           ${bulkAddFormat === 'first'
-            ? 'One name per line, or comma-separated. Middle names are dropped automatically.'
-            : 'One name per line: <strong>Last, First</strong>. Middle names after the first name are dropped.'}
+          ? 'One name per line, or comma-separated. Middle names are dropped automatically.'
+          : 'One name per line: <strong>Last, First</strong>. Middle names after the first name are dropped.'}
         </p>
       </div>
       <div class="form-group">
