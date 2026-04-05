@@ -2577,13 +2577,22 @@
       5: { label: 'Level 5', cls: 'badge-lvl5', desc: 'Async/Await · Metaclasses · Descriptors · Protocols' }
     };
 
+    // Submissions larger than this (in chars) skip expensive analyses to
+    // keep the UI responsive — e.g. code with large embedded data tables.
+    const LARGE_CODE_THRESHOLD = 60000;
+
     const _conceptCache = new Map();
     function _normalizeForCache(code) {
       return code.split('\n').map(l => l.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n');
     }
     function detectConcepts(code) {
       if (!code) return { concepts: [], maxLevel: 0 };
-      const cacheKey = _normalizeForCache(code);
+      // For very large submissions, use a cheap fingerprint (length + first
+      // and last 80 chars) as the cache key to avoid re-normalizing a 200 KB
+      // string on every render. Collision risk is negligible in practice.
+      const cacheKey = code.length > LARGE_CODE_THRESHOLD
+        ? ('__large_' + code.length + '_' + code.slice(0, 80) + '_' + code.slice(-80))
+        : _normalizeForCache(code);
       if (_conceptCache.has(cacheKey)) return _conceptCache.get(cacheKey);
       // LRU eviction: drop oldest 100 entries when cache exceeds 500
       if (_conceptCache.size > 500) {
@@ -3652,6 +3661,12 @@ ${contentText.slice(0, 6000)}`
 
     // Combined: take the higher of name-based and structural similarity
     function combinedSimilarity(codeA, codeB) {
+      // Skip similarity work entirely for oversized submissions — tokenizing
+      // and n-gram matching a 200 KB file against every other submission is
+      // prohibitively expensive and not meaningful for huge embedded data.
+      if ((codeA && codeA.length > LARGE_CODE_THRESHOLD) || (codeB && codeB.length > LARGE_CODE_THRESHOLD)) {
+        return { score: 0, method: 'skipped', matchedRegions: [], nameScore: 0, structScore: 0 };
+      }
       const nameScore = varNameSimilarity(codeA, codeB);
       const structural = structuralSimilarity(codeA, codeB);
       if (structural.score >= nameScore) {
@@ -3691,6 +3706,8 @@ ${contentText.slice(0, 6000)}`
     }
 
     function detectAIPatterns(code, assignment, student) {
+      // Skip AI analysis for oversized submissions (e.g. embedded word lists)
+      if (code && code.length > LARGE_CODE_THRESHOLD) return null;
       // Strip starter code — don't flag patterns that came from the teacher
       code = stripStarterCode(code, assignment);
       // If no model code was provided for this assignment, use the student's
@@ -5367,6 +5384,7 @@ ${contentText.slice(0, 6000)}`
     function getAIScore(sub) {
       const assign = getAssignment(sub.assignment_id);
       if (!assign || sub.line_count < 5) return 0;
+      if (sub.code && sub.code.length > LARGE_CODE_THRESHOLD) return 0;
       const student = getStudent(sub.student_id);
       const result = detectAIPatterns(sub.code, assign, student);
       if (!result) return 0;
@@ -6834,6 +6852,11 @@ ${list.length === 0 ? `<div style="text-align:center;padding:60px 20px;color:#9c
 
     // ── Code View Modal (with AI highlights) ───────────────────
     function highlightAICode(code, assignment, student) {
+      // Very large submissions (e.g. embedded word lists) skip per-line
+      // highlighting to keep rendering responsive.
+      if (code && code.length > LARGE_CODE_THRESHOLD) {
+        return esc(code);
+      }
       const aiLevel = assignment ? (assignment.ai_level || (student?.effort_rating ? Math.max(student.effort_rating, expectedLevel(assignment)) : expectedLevel(assignment))) : 2;
       const lines = code.split('\n');
       // Build set of starter code lines to skip highlighting
